@@ -1,0 +1,36 @@
+﻿cmake_minimum_required(VERSION 3.18)
+project(xVolumeImaging LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+
+set(CMAKE_CUDA_ARCHITECTURES 80)
+set(CMAKE_CUDA_STANDARD 11)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+enable_language(CUDA)
+
+
+find_package(spdlog REQUIRED)
+find_package(OpenCV REQUIRED)
+
+find_package(CUDAToolkit REQUIRED)
+
+add_executable(xVolumeImaging "main.cpp" "kernel.cu" "base.h" "geometry.cu" "util.h")
+
+set_target_properties(xVolumeImaging PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+)
+
+target_link_libraries(xVolumeImaging 
+PRIVATE 
+    spdlog::spdlog
+    CUDA::cudart
+	${OpenCV_LIBS}
+    )
+
+target_compile_definitions(xVolumeImaging
+    PUBLIC 
+	__CUDA__
+)
