@@ -103,12 +103,14 @@ __gpu__ float henyey_greenstein_phase(float costheta, float g)
 __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
 	curandState* rand_state,
 	const DensityGrid* grid,
-	const float sigma_s,
-	const float sigma_a)
+	const Vec3f sigma_s,
+	const Vec3f sigma_a)
 {
 	Vec3f throughput{ 1.0, 1.0, 1.0 };
 
-	const float max_t = (sigma_s + sigma_a) * grid->getMaxDensity();
+	const Vec3f max_t = (sigma_s + sigma_a) * grid->getMaxDensity();
+	float majorant = Xmax(max_t[0], Xmax(max_t[1], max_t[2]));
+
 	AABB bbox = grid->getBounds();
 	float t_near = 0.0, t_far = 0.0f;
 	if (!bbox.intersect(&shadowRay, &t_near, &t_far))
@@ -119,7 +121,7 @@ __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
 	while (true)
 	{
 		//distance sampling
-		t += distant_sample(max_t, rnd(rand_state));
+		t += distant_sample(majorant, rnd(rand_state));
 
 		//sampled distance is out of volume --> break
 		if (t >= t_far)
@@ -127,12 +129,12 @@ __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
 
 		// calculate several parametor in now position
 		float density = grid->getDensity(shadowRay(t));
-		float absorp_weight = sigma_a * density;
-		float scatter_weight = sigma_s * density;
-		float null_weight = max_t - absorp_weight - scatter_weight;
+		Vec3f absorp_weight = sigma_a * density;
+		Vec3f scatter_weight = sigma_s * density;
+		Vec3f null_weight = Vec3f(majorant) - absorp_weight - scatter_weight;
 
 		//estimate transmittance
-		throughput *= null_weight / max_t;
+		throughput *= null_weight / Vec3f(majorant);
 	}
 	return throughput;
 }
@@ -171,6 +173,100 @@ __gpu__ Vec3f local2world(const Vec3f local, const Vec3f x, const Vec3f y, const
 {
 	return x * local[0] + y * local[1] + z * local[2];
 }
+__gpu__ Vec3f transmittance(float t, const Vec3f sigma)
+{
+	return exp(-sigma * t);
+}
+
+// ratio tracking
+__gpu__ bool sampleMedium(Ray* ray, float t_near, float t_far, curandState* rand_state, const DensityGrid* grid, const RenderSetting* setting)
+{
+	float t = t_near;
+	Vec3f throughput_tracking(1, 1, 1);
+	Vec3f max_t = (setting->sigma_s + setting->sigma_a) * grid->getMaxDensity();
+	float majorant = Xmax(max_t[0], Xmax(max_t[1], max_t[2]));
+	while (true)
+	{
+		// sample wavelength
+		int channel = 3 * rnd(rand_state);
+		if (channel == 3) channel--;
+		const float pmf_wavelength = 1.0f / 3.0f;
+
+		const float d_sampled = distant_sample(majorant, rnd(rand_state));
+		t += d_sampled;
+		//transmit
+		if (t >= t_far)
+		{
+			const float dist_to_surface_from_current_pos = t_far - t;
+			const Vec3f tr = transmittance(dist_to_surface_from_current_pos, Vec3f(Xmax(max_t[0], Xmax(max_t[1], max_t[2]))));
+			const Vec3f p_surface = tr;
+			const Vec3f pdf = pmf_wavelength * p_surface;
+			throughput_tracking *= tr / (pdf[0] + pdf[1] + pdf[2]);
+
+			// nan check
+			if (isnan(throughput_tracking[0]) ||
+				isnan(throughput_tracking[1]) ||
+				isnan(throughput_tracking[2])) {
+				ray->throughput = Vec3f(0.0f);
+			}
+			else {
+				ray->throughput *= throughput_tracking;
+			}
+
+			return false;
+		}
+
+		// compute russian roulette probability
+		const float density = grid->getDensity((*ray)(t));
+		const Vec3f sigma_s = setting->sigma_s * density;
+		const Vec3f sigma_a = setting->sigma_a * density;
+		const Vec3f sigma_n = Vec3f(majorant) - sigma_a - sigma_s;
+		const Vec3f P_s = sigma_s / (sigma_s + sigma_n);
+		const Vec3f P_n = sigma_n / (sigma_s + sigma_n);
+
+		// In-Scattering
+		if (rnd(rand_state) < P_s[channel])
+		{
+			// update throughput
+			const Vec3f tr = transmittance(d_sampled, Vec3f(majorant));
+			const Vec3f pdf_distance = majorant * tr;
+			const Vec3f pdf = pmf_wavelength * pdf_distance * P_s;
+			throughput_tracking *= (tr * sigma_s) / (pdf[0] + pdf[1] + pdf[2]);
+
+			// nan check
+			if (isnan(throughput_tracking[0]) ||
+				isnan(throughput_tracking[1]) ||
+				isnan(throughput_tracking[2])) {
+				ray->throughput = Vec3f(0.0f);
+			}
+			else {
+				ray->throughput *= throughput_tracking;
+			}
+
+
+			//make next scatter Ray
+			//   localize
+			Vec3f b1, b2;
+			branchlessONB(ray->direction, &b1, &b2);
+			//   sample scatter dir
+			Vec3f local_scatterdir = henyey_greenstein_sample(setting->g, rnd(rand_state), rnd(rand_state));
+			//   reset local ray to world ray
+			Vec3f scatterdir = local2world(local_scatterdir, b1, b2, ray->direction);
+			//   reset ray
+			ray->direction = scatterdir;
+			ray->origin = (*ray)(t);
+
+			return true;
+		}
+
+		// Null-Scattering
+		// update throughput
+		const Vec3f tr = transmittance(d_sampled, Vec3f(majorant));
+		const Vec3f pdf_distance = majorant * tr;
+		const Vec3f pdf = pmf_wavelength * pdf_distance * P_n;
+		throughput_tracking *= (tr * sigma_n) / (pdf[0] + pdf[1] + pdf[2]);
+	}
+}
 __gpu__ Vec3f RayTraceNEE(const Ray* ray_in, const DensityGrid* grid, const RenderSetting* setting, curandState* rand_state)
 {
 	Vec3f radiance(0);
@@ -179,7 +275,7 @@ __gpu__ Vec3f RayTraceNEE(const Ray* ray_in, const DensityGrid* grid, const Rend
 	Ray ray = *ray_in;
 	ray.throughput = Vec3f(1.0f, 1.0f, 1.0f);
 
-	float max_t = (setting->sigma_s + setting->sigma_a) * grid->getMaxDensity();
+	//Vec3f max_t = (setting->sigma_s + setting->sigma_a) * grid->getMaxDensity();
 
 	auto bbox = grid->getBounds();
 	uint32_t depth = 0;
@@ -204,71 +300,20 @@ __gpu__ Vec3f RayTraceNEE(const Ray* ray_in, const DensityGrid* grid, const Rend
 			ray.throughput /= russian_roulette_prob;
 		}
 
-		// distance sample
-		float t = t_near;
-		float d_sampled = distant_sample(max_t, rnd(rand_state));
-		t += d_sampled;
-		//transmit
-		if (t >= t_far)
-		{
-			// 考虑边界点的辐射量？
-			// direct light
-			float costheta = dot(setting->lightdir, ray.direction);
-			float nee_phase = henyey_greenstein_phase(costheta, setting->g);
-			Vec3f transmittance = SunLightNEE(Ray(ray(t_far), setting->lightdir), rand_state, grid, setting->sigma_s, setting->sigma_a);
-			radiance += ray.throughput * nee_phase * setting->l_intensity * transmittance;
-
+		// sample medium
+		bool is_scatter = sampleMedium(&ray, t_near, t_far, rand_state, grid, setting);
+		if (!is_scatter)
 			break;
-		}
 
-		// density sample
-		auto pos = ray(t);
-		float density = grid->getDensity(pos);
+		// in-scatter--->direct light
+		float costheta = dot(setting->lightdir, ray.direction);
+		float nee_phase = henyey_greenstein_phase(costheta, setting->g);
+		Vec3f transmittance = SunLightNEE(Ray(ray.origin, setting->lightdir), rand_state, grid, setting->sigma_s, setting->sigma_a);
+		radiance += ray.throughput * nee_phase * setting->l_intensity * transmittance;
 
-		float absorp_weight = setting->sigma_a * density;
-		float scatter_weight = setting->sigma_s * density;
-		float null_weight = max_t - absorp_weight - scatter_weight;
-		Vec3f events{ absorp_weight, scatter_weight, null_weight };
-
-		//Sample Event???如果只考虑散射或者只考虑发射时可以通过调整透射率，免去事件采样
-		// 0-->absorp, 1-->scatter, 2-->null scatter
-		int e = sampleEvent(events, rnd(rand_state));
-		if (e == 0)//absorp
-		{
-			//Todo: correspond to emission
-			break;
-		}
-		else if (e == 1)//scatter
-		{
-			// direct light
-			float costheta = dot(setting->lightdir, ray.direction);
-			float nee_phase = henyey_greenstein_phase(costheta, setting->g);
-			Vec3f transmittance = SunLightNEE(Ray(pos, setting->lightdir), rand_state, grid, setting->sigma_s, setting->sigma_a);
-			radiance += ray.throughput * nee_phase * setting->l_intensity * transmittance;
-
-			//make next scatter Ray
-			//   localize
-			Vec3f b1, b2;
-			branchlessONB(ray.direction, &b1, &b2);
-			//   sample scatter dir
-			Vec3f local_scatterdir = henyey_greenstein_sample(setting->g, rnd(rand_state), rnd(rand_state));
-			//   reset local ray to world ray
-			Vec3f scatterdir = local2world(local_scatterdir, b1, b2, ray.direction);
-			//   reset ray
-			ray.direction = scatterdir;
-			ray.origin = pos;
-
-			depth++;
-		}
-		else // null scatter
-		{
-			// renew ray
-			ray.origin = pos;
-			continue;
-		}
-
-
+		depth++;
 	}
+
 	return radiance;
 }
 

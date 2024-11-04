@@ -59,11 +59,11 @@ int main()
 	RenderSetting setting;
 	setting.height = 512;
 	setting.width = 700;
-	setting.l_intensity = 5.0f;
+	setting.l_intensity = Vec3f(5.0f);
 	setting.lightdir = { 0.0, 0.0, 1.0 };
-	setting.sigma_a = 0.0f;
-	setting.sigma_s = 0.09f;
-	setting.samples = 100;
+	setting.sigma_a = Vec3f(0.0f);
+	setting.sigma_s = Vec3f(0.09f, 0.05f, 0.05f);
+	setting.samples = 1024;
 	setting.g = -0.1;
 	setting.max_depth = 100;
 

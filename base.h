@@ -68,10 +68,10 @@ public:
 	int width;
 	int height;
 	Vec3f lightdir = { 1,0,0 };
-	float l_intensity;
+	Vec3f l_intensity;
 	int max_depth;
-	float sigma_s;
-	float sigma_a;
+	Vec3f sigma_s;
+	Vec3f sigma_a;
 	float g;
 	int samples;
 	PinholeCamera camera;
