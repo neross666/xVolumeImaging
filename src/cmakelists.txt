@@ -17,7 +17,7 @@ find_package(OpenCV REQUIRED)
 
 find_package(CUDAToolkit REQUIRED)
 
-add_executable(xVolumeImaging "main.cpp" "kernel.cu" "base.h" "geometry.cu" "util.h")
+add_executable(xVolumeImaging "main.cpp" "kernel.cu" "base.h" "util.h")
 
 set_target_properties(xVolumeImaging PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
