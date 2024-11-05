@@ -51,12 +51,12 @@ public:
 		camera2world = c2w;
 	}
 
-	__twin__ bool sampleRay(const Vec2f pixel, Ray* ray) const
+	__twin__ bool sampleRay(const Vec2f& pixel, Ray& ray) const
 	{
 		const Vec3f dir((2 * pixel[0] - 1) * scale, (1 - 2 * pixel[1]) * scale / aspect_ratio, -1);
 
-		ray->direction = normalize(multDirMatrix(dir, camera2world));
-		ray->origin = Vec3f(camera2world[3][0], camera2world[3][1], camera2world[3][2]);
+		ray.direction = normalize(multDirMatrix(dir, camera2world));
+		ray.origin = Vec3f(camera2world[3][0], camera2world[3][1], camera2world[3][2]);
 
 		return true;
 	}
@@ -81,10 +81,10 @@ struct AABB {
 	Vec3f pMin;
 	Vec3f pMax;
 
-	__twin__ bool intersect(const Ray* ray, float* t_near, float* t_far) {
-		Vec3f direction_inv = 1.0 / ray->direction;
-		Vec3f t_top = direction_inv * (pMax - ray->origin);
-		Vec3f t_bottom = direction_inv * (pMin - ray->origin);
+	__twin__ bool intersect(const Ray& ray, float& t_near, float& t_far) {
+		Vec3f direction_inv = 1.0 / ray.direction;
+		Vec3f t_top = direction_inv * (pMax - ray.origin);
+		Vec3f t_bottom = direction_inv * (pMin - ray.origin);
 		Vec3f t_min = vmin(t_top, t_bottom);
 		Vec3f t_max = vmax(t_top, t_bottom);
 
@@ -97,8 +97,8 @@ struct AABB {
 
 		t_0 = Xmax(t_0, 0.0f); // Ensure t_0 is not negative
 
-		*t_near = t_0;
-		*t_far = t_1;
+		t_near = t_0;
+		t_far = t_1;
 
 		return true;
 	}
@@ -132,7 +132,7 @@ public:
 		return ret;
 	}
 
-	__twin__ float getDensity(const Vec3f pos) const
+	__twin__ float getDensity(const Vec3f& pos) const
 	{
 		return 1.0f;
 	}
