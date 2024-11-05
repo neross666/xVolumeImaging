@@ -161,17 +161,17 @@ struct Vec3 {
 
 	__twin__ Vec3 operator-() const { return Vec3(-v[0], -v[1], -v[2]); }
 
-	__twin__ Vec3& operator+=(const Vec3 v)
+	__twin__ Vec3& operator+=(const Vec3& v)
 	{
 		for (int i = 0; i < 3; ++i) { this->v[i] += v[i]; }
 		return *this;
 	}
-	__twin__ Vec3& operator*=(const Vec3 v)
+	__twin__ Vec3& operator*=(const Vec3& v)
 	{
 		for (int i = 0; i < 3; ++i) { this->v[i] *= v[i]; }
 		return *this;
 	}
-	__twin__ Vec3& operator/=(const Vec3 v)
+	__twin__ Vec3& operator/=(const Vec3& v)
 	{
 		for (int i = 0; i < 3; ++i) { this->v[i] /= v[i]; }
 		return *this;
@@ -181,89 +181,89 @@ struct Vec3 {
 };
 
 template <typename T>
-__twin__ inline Vec3<T> operator+(const Vec3<T> v1, const Vec3<T> v2)
+__twin__ inline Vec3<T> operator+(const Vec3<T>& v1, const Vec3<T>& v2)
 {
 	return Vec3<T>(v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]);
 }
 template <typename T>
-__twin__ inline Vec3<T> operator+(const Vec3<T> v1, float k)
+__twin__ inline Vec3<T> operator+(const Vec3<T>& v1, float k)
 {
 	return Vec3<T>(v1[0] + k, v1[1] + k, v1[2] + k);
 }
 template <typename T>
-__twin__ inline Vec3<T> operator+(float k, const Vec3<T> v2)
+__twin__ inline Vec3<T> operator+(float k, const Vec3<T>& v2)
 {
 	return v2 + k;
 }
 
 template <typename T>
-__twin__ inline Vec3<T> operator-(const Vec3<T> v1, const Vec3<T> v2)
+__twin__ inline Vec3<T> operator-(const Vec3<T>& v1, const Vec3<T>& v2)
 {
 	return Vec3<T>(v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]);
 }
 template <typename T>
-__twin__ inline Vec3<T> operator-(const Vec3<T> v1, float k)
+__twin__ inline Vec3<T> operator-(const Vec3<T>& v1, float k)
 {
 	return Vec3<T>(v1[0] - k, v1[1] - k, v1[2] - k);
 }
 template <typename T>
-inline Vec3<T> operator-(float k, const Vec3<T> v2)
+inline Vec3<T> operator-(float k, const Vec3<T>& v2)
 {
 	return Vec3<T>(k - v2[0], k - v2[1], k - v2[2]);
 }
 
 template <typename T>
-__twin__ inline Vec3<T> operator*(const Vec3<T> v1, const Vec3<T> v2)
+__twin__ inline Vec3<T> operator*(const Vec3<T>& v1, const Vec3<T>& v2)
 {
 	return Vec3<T>(v1[0] * v2[0], v1[1] * v2[1], v1[2] * v2[2]);
 }
 template <typename T>
-__twin__ inline Vec3<T> operator*(const Vec3<T> v1, float k)
+__twin__ inline Vec3<T> operator*(const Vec3<T>& v1, float k)
 {
 	return Vec3<T>(v1[0] * k, v1[1] * k, v1[2] * k);
 }
 template <typename T>
-__twin__ inline Vec3<T> operator*(float k, const Vec3<T> v2)
+__twin__ inline Vec3<T> operator*(float k, const Vec3<T>& v2)
 {
 	return v2 * k;
 }
 
 template <typename T>
-__twin__ inline Vec3<T> operator/(const Vec3<T> v1, const Vec3<T> v2)
+__twin__ inline Vec3<T> operator/(const Vec3<T>& v1, const Vec3<T>& v2)
 {
 	return Vec3<T>(v1[0] / v2[0], v1[1] / v2[1], v1[2] / v2[2]);
 }
 template <typename T>
-__twin__ inline Vec3<T> operator/(const Vec3<T> v1, float k)
+__twin__ inline Vec3<T> operator/(const Vec3<T>& v1, float k)
 {
 	return Vec3<T>(v1[0] / k, v1[1] / k, v1[2] / k);
 }
 template <typename T>
-__twin__ inline Vec3<T> operator/(float k, const Vec3<T> v2)
+__twin__ inline Vec3<T> operator/(float k, const Vec3<T>& v2)
 {
 	return Vec3<T>(k / v2[0], k / v2[1], k / v2[2]);
 }
 
 template <typename T>
-__twin__ inline Vec3<T> vmin(const Vec3<T> v1, const Vec3<T> v2)
+__twin__ inline Vec3<T> vmin(const Vec3<T>& v1, const Vec3<T>& v2)
 {
 	return Vec3<T>(Xmin(v1[0], v2[0]), Xmin(v1[1], v2[1]), Xmin(v1[2], v2[2]));
 }
 
 template <typename T>
-__twin__ inline Vec3<T> vmax(const Vec3<T> v1, const Vec3<T> v2)
+__twin__ inline Vec3<T> vmax(const Vec3<T>& v1, const Vec3<T>& v2)
 {
 	return Vec3<T>(Xmax(v1[0], v2[0]), Xmax(v1[1], v2[1]), Xmax(v1[2], v2[2]));
 }
 
 template <typename T>
-__twin__ inline T dot(const Vec3<T> v1, const Vec3<T> v2)
+__twin__ inline T dot(const Vec3<T>& v1, const Vec3<T>& v2)
 {
 	return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 }
 
 template <typename T>
-__twin__ inline Vec3<T> cross(const Vec3<T> v1, const Vec3<T> v2)
+__twin__ inline Vec3<T> cross(const Vec3<T>& v1, const Vec3<T>& v2)
 {
 	return Vec3<T>(v1[1] * v2[2] - v1[2] * v2[1], v1[2] * v2[0] - v1[0] * v2[2],
 		v1[0] * v2[1] - v1[1] * v2[0]);
@@ -272,17 +272,17 @@ __twin__ inline Vec3<T> cross(const Vec3<T> v1, const Vec3<T> v2)
 using Vec3f = Vec3<float>;
 using Vec3ui = Vec3<uint32_t>;
 
-__twin__ inline float length(const Vec3f v) {
+__twin__ inline float length(const Vec3f& v) {
 	return sqrt(dot(v, v));
 }
-__twin__ inline float length2(const Vec3f v) {
+__twin__ inline float length2(const Vec3f& v) {
 	return dot(v, v);
 }
-__twin__ inline Vec3f normalize(const Vec3f v) {
+__twin__ inline Vec3f normalize(const Vec3f& v) {
 	return v / length(v);
 }
 
-__twin__ inline Vec3f exp(const Vec3f v) {
+__twin__ inline Vec3f exp(const Vec3f& v) {
 	return Vec3f(std::exp(v[0]), std::exp(v[1]), std::exp(v[2]));
 }
 
@@ -328,7 +328,7 @@ public:
 	__twin__ T* operator [] (uint8_t i) { return x[i]; }
 
 	// Multiply the current matrix with another matrix (rhs)
-	__twin__ Matrix44 operator * (const Matrix44 v) const
+	__twin__ Matrix44 operator * (const Matrix44& v) const
 	{
 		Matrix44 tmp;
 		multiply(*this, v, tmp);
@@ -348,7 +348,7 @@ public:
 	// useful nor really necessary (but nice to have -- and it gives you an example of how
 	// it can be done, as this how you will this operation implemented in most libraries).
 	//[/comment]
-	__twin__ static void multiply(const Matrix44<T>& a, const Matrix44 b, Matrix44& c)
+	__twin__ static void multiply(const Matrix44<T>& a, const Matrix44& b, Matrix44& c)
 	{
 #if 0
 		for (uint8_t i = 0; i < 4; ++i) {
@@ -480,7 +480,7 @@ public:
 	// 1 especially when the matrix is projective matrix (perspective projection matrix).
 	//[/comment]
 	template<typename S>
-	__twin__ void multVecMatrix(const Vec3<S> src, Vec3<S>* dst) const
+	__twin__ void multVecMatrix(const Vec3<S>& src, Vec3<S>& dst) const
 	{
 		S a, b, c, w;
 
@@ -489,9 +489,9 @@ public:
 		c = src[0] * x[0][2] + src[1] * x[1][2] + src[2] * x[2][2] + x[3][2];
 		w = src[0] * x[0][3] + src[1] * x[1][3] + src[2] * x[2][3] + x[3][3];
 
-		*dst[0] = a / w;
-		*dst[1] = b / w;
-		*dst[2] = c / w;
+		dst[0] = a / w;
+		dst[1] = b / w;
+		dst[2] = c / w;
 	}
 
 	//[comment]
@@ -501,7 +501,7 @@ public:
 	// and we don't compute w.
 	//[/comment]
 	template<typename S>
-	__twin__ void multDirMatrix(const Vec3<S> src, Vec3<S> dst) const
+	__twin__ void multDirMatrix(const Vec3<S>& src, Vec3<S>& dst) const
 	{
 		S a, b, c;
 
@@ -509,9 +509,9 @@ public:
 		b = src[0] * x[0][1] + src[1] * x[1][1] + src[2] * x[2][1];
 		c = src[0] * x[0][2] + src[1] * x[1][2] + src[2] * x[2][2];
 
-		*dst[0] = a;
-		*dst[1] = b;
-		*dst[2] = c;
+		dst[0] = a;
+		dst[1] = b;
+		dst[2] = c;
 	}
 
 	//[comment]
@@ -649,7 +649,7 @@ typedef Matrix44<float> Matrix44f;
 
 
 template<typename S>
-__twin__ Vec3<S> multVecMatrix(const Vec3<S> src, const Matrix44<S> x)
+__twin__ Vec3<S> multVecMatrix(const Vec3<S>& src, const Matrix44<S>& x)
 {
 	Vec3<S> dst;
 
@@ -668,7 +668,7 @@ __twin__ Vec3<S> multVecMatrix(const Vec3<S> src, const Matrix44<S> x)
 }
 
 template<typename S>
-__twin__ Vec3<S> multDirMatrix(const Vec3<S> src, const Matrix44<S> x)
+__twin__ Vec3<S> multDirMatrix(const Vec3<S>& src, const Matrix44<S>& x)
 {
 	Vec3<S> dst;
 
@@ -685,19 +685,19 @@ __twin__ Vec3<S> multDirMatrix(const Vec3<S> src, const Matrix44<S> x)
 	return dst;
 }
 
-void orthonormalBasis(const Vec3f n, Vec3f& t, Vec3f& b);
+void orthonormalBasis(const Vec3f& n, Vec3f& t, Vec3f& b);
 
 
 // transform direction from world to local
-inline Vec3f worldToLocal(const Vec3f v, const Vec3f lx, const Vec3f ly,
-	const Vec3f lz)
+inline Vec3f worldToLocal(const Vec3f& v, const Vec3f& lx, const Vec3f& ly,
+	const Vec3f& lz)
 {
 	return Vec3f(dot(v, lx), dot(v, ly), dot(v, lz));
 }
 
 // transform direction from local to world
-inline Vec3f localToWorld(const Vec3f v, const Vec3f lx, const Vec3f ly,
-	const Vec3f lz)
+inline Vec3f localToWorld(const Vec3f& v, const Vec3f& lx, const Vec3f& ly,
+	const Vec3f& lz)
 {
 	return Vec3f(
 		v[0] * lx[0] + v[1] * ly[0] + v[2] * lz[0],

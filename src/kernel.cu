@@ -51,7 +51,7 @@ __gpu__ float rnd(curandState* rand_state)
 
 
 
-__gpu__ Vec3f gamma(const Vec3f color)
+__gpu__ Vec3f gamma(const Vec3f& color)
 {
 	Vec3f result;
 	result[0] = fmaxf(fminf(powf(color[0], 1 / 2.2), 1.0), 0.0);
@@ -61,13 +61,13 @@ __gpu__ Vec3f gamma(const Vec3f color)
 	return result;
 }
 
-__gpu__ Vec3f NormalIntegrate(const Ray* ray_in, const DensityGrid* grid, const RenderSetting* setting)
+__gpu__ Vec3f NormalIntegrate(const Ray& ray_in, const DensityGrid& grid, const RenderSetting& setting)
 {
 	Vec3f radiance(0);
-	auto bbox = grid->getBounds();
+	auto bbox = grid.getBounds();
 	float t_near = 0.0f;
 	float t_far = 0.0f;
-	if (bbox.intersect(ray_in, &t_near, &t_far))
+	if (bbox.intersect(ray_in, t_near, t_far))
 	{
 		return Vec3f(0.5f);
 	}
@@ -79,7 +79,7 @@ __gpu__ float distant_sample(float sigma_t, float u)
 {
 	return -logf(1 - u) / sigma_t;
 }
-__gpu__ int sampleEvent(const Vec3f events, float u)
+__gpu__ int sampleEvent(const Vec3f& events, float u)
 {
 	// 0-->absorp, 1-->scatter, 2-->null scatter
 	Vec3f cdf = Vec3f{ events[0],
@@ -102,18 +102,18 @@ __gpu__ float henyey_greenstein_phase(float costheta, float g)
 }
 __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
 	curandState* rand_state,
-	const DensityGrid* grid,
+	const DensityGrid& grid,
 	const Vec3f sigma_s,
 	const Vec3f sigma_a)
 {
 	Vec3f throughput{ 1.0, 1.0, 1.0 };
 
-	const Vec3f max_t = (sigma_s + sigma_a) * grid->getMaxDensity();
+	const Vec3f max_t = (sigma_s + sigma_a) * grid.getMaxDensity();
 	float majorant = Xmax(max_t[0], Xmax(max_t[1], max_t[2]));
 
-	AABB bbox = grid->getBounds();
+	AABB bbox = grid.getBounds();
 	float t_near = 0.0, t_far = 0.0f;
-	if (!bbox.intersect(&shadowRay, &t_near, &t_far))
+	if (!bbox.intersect(shadowRay, t_near, t_far))
 		return throughput;
 
 	//Ratio Tracking
@@ -128,7 +128,7 @@ __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
 			break;
 
 		// calculate several parametor in now position
-		float density = grid->getDensity(shadowRay(t));
+		float density = grid.getDensity(shadowRay(t));
 		Vec3f absorp_weight = sigma_a * density;
 		Vec3f scatter_weight = sigma_s * density;
 		Vec3f null_weight = Vec3f(majorant) - absorp_weight - scatter_weight;
@@ -138,13 +138,13 @@ __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
 	}
 	return throughput;
 }
-__gpu__ void branchlessONB(const Vec3f n, Vec3f* b1, Vec3f* b2)
+__gpu__ void branchlessONB(const Vec3f& n, Vec3f& b1, Vec3f& b2)
 {
 	float sign = copysignf(1.0f, n[2]);
 	const float a = -1.0f / (sign + n[2]);
 	const float b = n[0] * n[1] * a;
-	*b1 = Vec3f(1.0f + sign * n[0] * n[0] * a, sign * b, -sign * n[0]);
-	*b2 = Vec3f(b, sign + n[1] * n[1] * a, -n[1]);
+	b1 = Vec3f(1.0f + sign * n[0] * n[0] * a, sign * b, -sign * n[0]);
+	b2 = Vec3f(b, sign + n[1] * n[1] * a, -n[1]);
 }
 __gpu__ Vec3f henyey_greenstein_sample(float g, float u, float v)
 {
@@ -169,21 +169,21 @@ __gpu__ Vec3f henyey_greenstein_sample(float g, float u, float v)
 			sinTheta * sinf(phi),
 			cosTheta };
 }
-__gpu__ Vec3f local2world(const Vec3f local, const Vec3f x, const Vec3f y, const Vec3f z)
+__gpu__ Vec3f local2world(const Vec3f& local, const Vec3f& x, const Vec3f& y, const Vec3f& z)
 {
 	return x * local[0] + y * local[1] + z * local[2];
 }
-__gpu__ Vec3f transmittance(float t, const Vec3f sigma)
+__gpu__ Vec3f transmittance(float t, const Vec3f& sigma)
 {
 	return exp(-sigma * t);
 }
 
 // ratio tracking
-__gpu__ bool sampleMedium(Ray* ray, float t_near, float t_far, curandState* rand_state, const DensityGrid* grid, const RenderSetting* setting)
+__gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, curandState* rand_state, const DensityGrid& grid, const RenderSetting& setting)
 {
 	float t = t_near;
 	Vec3f throughput_tracking(1, 1, 1);
-	Vec3f max_t = (setting->sigma_s + setting->sigma_a) * grid->getMaxDensity();
+	Vec3f max_t = (setting.sigma_s + setting.sigma_a) * grid.getMaxDensity();
 	float majorant = Xmax(max_t[0], Xmax(max_t[1], max_t[2]));
 	while (true)
 	{
@@ -207,19 +207,19 @@ __gpu__ bool sampleMedium(Ray* ray, float t_near, float t_far, curandState* rand
 			if (isnan(throughput_tracking[0]) ||
 				isnan(throughput_tracking[1]) ||
 				isnan(throughput_tracking[2])) {
-				ray->throughput = Vec3f(0.0f);
+				ray.throughput = Vec3f(0.0f);
 			}
 			else {
-				ray->throughput *= throughput_tracking;
+				ray.throughput *= throughput_tracking;
 			}
 
 			return false;
 		}
 
 		// compute russian roulette probability
-		const float density = grid->getDensity((*ray)(t));
-		const Vec3f sigma_s = setting->sigma_s * density;
-		const Vec3f sigma_a = setting->sigma_a * density;
+		const float density = grid.getDensity(ray(t));
+		const Vec3f sigma_s = setting.sigma_s * density;
+		const Vec3f sigma_a = setting.sigma_a * density;
 		const Vec3f sigma_n = Vec3f(majorant) - sigma_a - sigma_s;
 		const Vec3f P_s = sigma_s / (sigma_s + sigma_n);
 		const Vec3f P_n = sigma_n / (sigma_s + sigma_n);
@@ -237,24 +237,24 @@ __gpu__ bool sampleMedium(Ray* ray, float t_near, float t_far, curandState* rand
 			if (isnan(throughput_tracking[0]) ||
 				isnan(throughput_tracking[1]) ||
 				isnan(throughput_tracking[2])) {
-				ray->throughput = Vec3f(0.0f);
+				ray.throughput = Vec3f(0.0f);
 			}
 			else {
-				ray->throughput *= throughput_tracking;
+				ray.throughput *= throughput_tracking;
 			}
 
 
 			//make next scatter Ray
 			//   localize
 			Vec3f b1, b2;
-			branchlessONB(ray->direction, &b1, &b2);
+			branchlessONB(ray.direction, b1, b2);
 			//   sample scatter dir
-			Vec3f local_scatterdir = henyey_greenstein_sample(setting->g, rnd(rand_state), rnd(rand_state));
+			Vec3f local_scatterdir = henyey_greenstein_sample(setting.g, rnd(rand_state), rnd(rand_state));
 			//   reset local ray to world ray
-			Vec3f scatterdir = local2world(local_scatterdir, b1, b2, ray->direction);
+			Vec3f scatterdir = local2world(local_scatterdir, b1, b2, ray.direction);
 			//   reset ray
-			ray->direction = scatterdir;
-			ray->origin = (*ray)(t);
+			ray.direction = scatterdir;
+			ray.origin = ray(t);
 
 			return true;
 		}
@@ -267,23 +267,23 @@ __gpu__ bool sampleMedium(Ray* ray, float t_near, float t_far, curandState* rand
 		throughput_tracking *= (tr * sigma_n) / (pdf[0] + pdf[1] + pdf[2]);
 	}
 }
-__gpu__ Vec3f RayTraceNEE(const Ray* ray_in, const DensityGrid* grid, const RenderSetting* setting, curandState* rand_state)
+__gpu__ Vec3f RayTraceNEE(const Ray& ray_in, const DensityGrid& grid, const RenderSetting& setting, curandState* rand_state)
 {
 	Vec3f radiance(0);
 	Vec3f background(0.0f);
 
-	Ray ray = *ray_in;
+	Ray ray = ray_in;
 	ray.throughput = Vec3f(1.0f, 1.0f, 1.0f);
 
 	//Vec3f max_t = (setting->sigma_s + setting->sigma_a) * grid->getMaxDensity();
 
-	auto bbox = grid->getBounds();
+	auto bbox = grid.getBounds();
 	uint32_t depth = 0;
-	while (depth < setting->max_depth)
+	while (depth < setting.max_depth)
 	{
 		float t_near = 0.0f;
 		float t_far = 0.0f;
-		if (!bbox.intersect(&ray, &t_near, &t_far))
+		if (!bbox.intersect(ray, t_near, t_far))
 		{
 			radiance += ray.throughput * background * (depth != 0);
 			break;
@@ -301,15 +301,15 @@ __gpu__ Vec3f RayTraceNEE(const Ray* ray_in, const DensityGrid* grid, const Rend
 		}
 
 		// sample medium
-		bool is_scatter = sampleMedium(&ray, t_near, t_far, rand_state, grid, setting);
+		bool is_scatter = sampleMedium(ray, t_near, t_far, rand_state, grid, setting);
 		if (!is_scatter)
 			break;
 
 		// in-scatter--->direct light
-		float costheta = dot(setting->lightdir, ray.direction);
-		float nee_phase = henyey_greenstein_phase(costheta, setting->g);
-		Vec3f transmittance = SunLightNEE(Ray(ray.origin, setting->lightdir), rand_state, grid, setting->sigma_s, setting->sigma_a);
-		radiance += ray.throughput * nee_phase * setting->l_intensity * transmittance;
+		float costheta = dot(setting.lightdir, ray.direction);
+		float nee_phase = henyey_greenstein_phase(costheta, setting.g);
+		Vec3f transmittance = SunLightNEE(Ray(ray.origin, setting.lightdir), rand_state, grid, setting.sigma_s, setting.sigma_a);
+		radiance += ray.throughput * nee_phase * setting.l_intensity * transmittance;
 
 		depth++;
 	}
@@ -317,7 +317,7 @@ __gpu__ Vec3f RayTraceNEE(const Ray* ray_in, const DensityGrid* grid, const Rend
 	return radiance;
 }
 
-// kernel函数似乎不允许const T*类型参数？！
+// kernel函数似乎不允许const T*、const T& 类型参数？！
 __kernel__ void renderKernel(const DensityGrid grid, const RenderSetting setting, float* fb, curandState* rand_state)
 {
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -340,10 +340,10 @@ __kernel__ void renderKernel(const DensityGrid grid, const RenderSetting setting
 			(y + rnd(&local_rand_state)) / setting.height;
 
 		Ray firstRay;
-		if (setting.camera.sampleRay(Vec2f(u, v), &firstRay))
+		if (setting.camera.sampleRay(Vec2f(u, v), firstRay))
 		{
-			//Color += NormalIntegrate(&firstRay, &grid, &setting);
-			Color += RayTraceNEE(&firstRay, &grid, &setting, &local_rand_state);
+			//Color += NormalIntegrate(firstRay, grid, setting);
+			Color += RayTraceNEE(firstRay, grid, setting, &local_rand_state);
 			// Color += RayTrace(grid, setting.lightdir, setting.l_intensity, &local_rand_state,
 			//                   setting.max_density, setting.max_depth, setting.sigma_s, setting.sigma_a, setting.g, firstRay);
 		}
