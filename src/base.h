@@ -4,6 +4,7 @@
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <curand_kernel.h>
 
 #include "geometry.h"
 
@@ -141,4 +142,17 @@ public:
 	{
 		return 1.1f;
 	}
+};
+
+// uniform distribution sampler
+class Sampler
+{
+public:
+	__gpu__ Sampler(curandState* rs) : rand_state(rs) {}
+	__gpu__ float getNext1D() { count++; return curand_uniform(rand_state); }
+	__gpu__ Vec2f getNext2D() { count += 2; return Vec2f(curand_uniform(rand_state), curand_uniform(rand_state)); }
+
+private:
+	curandState* rand_state = nullptr;
+	int count = 0;
 };

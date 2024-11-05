@@ -75,65 +75,65 @@ struct Vec2 {
 };
 
 template <typename T>
-inline Vec2<T> operator+(const Vec2<T> v1, const Vec2<T> v2)
+__twin__ inline Vec2<T> operator+(const Vec2<T> v1, const Vec2<T> v2)
 {
 	return Vec2<T>(v1[0] + v2[0], v1[1] + v2[1]);
 }
 template <typename T>
-inline Vec2<T> operator+(const Vec2<T> v1, float k)
+__twin__ inline Vec2<T> operator+(const Vec2<T> v1, float k)
 {
 	return Vec2<T>(v1[0] + k, v1[1] + k);
 }
 template <typename T>
-inline Vec2<T> operator+(float k, const Vec2<T> v2)
+__twin__ inline Vec2<T> operator+(float k, const Vec2<T> v2)
 {
 	return v2 + k;
 }
 
 template <typename T>
-inline Vec2<T> operator-(const Vec2<T> v1, const Vec2<T> v2)
+__twin__ inline Vec2<T> operator-(const Vec2<T> v1, const Vec2<T> v2)
 {
 	return Vec2<T>(v1[0] - v2[0], v1[1] - v2[1]);
 }
 template <typename T>
-inline Vec2<T> operator-(const Vec2<T> v1, float k)
+__twin__ inline Vec2<T> operator-(const Vec2<T> v1, float k)
 {
 	return Vec2<T>(v1[0] - k, v1[1] - k);
 }
 template <typename T>
-inline Vec2<T> operator-(float k, const Vec2<T> v2)
+__twin__ inline Vec2<T> operator-(float k, const Vec2<T> v2)
 {
 	return Vec2<T>(k - v2[0], k - v2[1]);
 }
 
 template <typename T>
-inline Vec2<T> operator*(const Vec2<T> v1, const Vec2<T> v2)
+__twin__ inline Vec2<T> operator*(const Vec2<T> v1, const Vec2<T> v2)
 {
 	return Vec2<T>(v1[0] * v2[0], v1[1] * v2[1]);
 }
 template <typename T>
-inline Vec2<T> operator*(const Vec2<T> v1, float k)
+__twin__ inline Vec2<T> operator*(const Vec2<T> v1, float k)
 {
 	return Vec2<T>(v1[0] * k, v1[1] * k);
 }
 template <typename T>
-inline Vec2<T> operator*(float k, const Vec2<T> v2)
+__twin__ inline Vec2<T> operator*(float k, const Vec2<T> v2)
 {
 	return v2 * k;
 }
 
 template <typename T>
-inline Vec2<T> operator/(const Vec2<T> v1, const Vec2<T> v2)
+__twin__ inline Vec2<T> operator/(const Vec2<T> v1, const Vec2<T> v2)
 {
 	return Vec2<T>(v1[0] / v2[0], v1[1] / v2[1]);
 }
 template <typename T>
-inline Vec2<T> operator/(const Vec2<T> v1, float k)
+__twin__ inline Vec2<T> operator/(const Vec2<T> v1, float k)
 {
 	return Vec2<T>(v1[0] / k, v1[1] / k);
 }
 template <typename T>
-inline Vec2<T> operator/(float k, const Vec2<T> v2)
+__twin__ inline Vec2<T> operator/(float k, const Vec2<T> v2)
 {
 	return Vec2<T>(k / v2[0], k / v2[1]);
 }
@@ -207,7 +207,7 @@ __twin__ inline Vec3<T> operator-(const Vec3<T>& v1, float k)
 	return Vec3<T>(v1[0] - k, v1[1] - k, v1[2] - k);
 }
 template <typename T>
-inline Vec3<T> operator-(float k, const Vec3<T>& v2)
+__twin__ inline Vec3<T> operator-(float k, const Vec3<T>& v2)
 {
 	return Vec3<T>(k - v2[0], k - v2[1], k - v2[2]);
 }
@@ -685,23 +685,28 @@ __twin__ Vec3<S> multDirMatrix(const Vec3<S>& src, const Matrix44<S>& x)
 	return dst;
 }
 
-void orthonormalBasis(const Vec3f& n, Vec3f& t, Vec3f& b);
+
+
+__twin__ inline void branchlessONB(const Vec3f& n, Vec3f& b1, Vec3f& b2)
+{
+	float sign = copysignf(1.0f, n[2]);
+	//float sign = std::copysign(1.0f, n[2]);	// n[2] == 0 !!!
+	const float a = -1.0f / (sign + n[2]);
+	const float b = n[0] * n[1] * a;
+	b1 = Vec3f(1.0f + sign * n[0] * n[0] * a, sign * b, -sign * n[0]);
+	b2 = Vec3f(b, sign + n[1] * n[1] * a, -n[1]);
+}
 
 
 // transform direction from world to local
-inline Vec3f worldToLocal(const Vec3f& v, const Vec3f& lx, const Vec3f& ly,
+__twin__ inline Vec3f worldToLocal(const Vec3f& v, const Vec3f& lx, const Vec3f& ly,
 	const Vec3f& lz)
 {
 	return Vec3f(dot(v, lx), dot(v, ly), dot(v, lz));
 }
 
 // transform direction from local to world
-inline Vec3f localToWorld(const Vec3f& v, const Vec3f& lx, const Vec3f& ly,
-	const Vec3f& lz)
+__twin__ inline Vec3f local2world(const Vec3f& local, const Vec3f& x, const Vec3f& y, const Vec3f& z)
 {
-	return Vec3f(
-		v[0] * lx[0] + v[1] * ly[0] + v[2] * lz[0],
-		v[0] * lx[1] + v[1] * ly[1] + v[2] * lz[1],
-		v[0] * lx[2] + v[1] * ly[2] + v[2] * lz[2]
-	);
+	return x * local[0] + y * local[1] + z * local[2];
 }

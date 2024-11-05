@@ -1,7 +1,4 @@
-﻿#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-#include "base.h"
-#include <curand_kernel.h>
+﻿#include "base.h"
 
 
 __global__ void vectorAddKernel(const float* A, const float* B, float* C, int N) {
@@ -43,10 +40,6 @@ __kernel__ void random_init(int max_x, int max_y, curandState* rand_state) {
 	int pixel_index = j * max_x + i;
 	//Each thread gets same seed, a different sequence number, no offset
 	curand_init(1984, pixel_index, 0, &rand_state[pixel_index]);
-}
-__gpu__ float rnd(curandState* rand_state)
-{
-	return curand_uniform(rand_state);
 }
 
 
@@ -101,7 +94,7 @@ __gpu__ float henyey_greenstein_phase(float costheta, float g)
 	return PI_MUL_4_INV * (1 - g * g) / powf(denomi, 3.0f / 2.0f);
 }
 __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
-	curandState* rand_state,
+	Sampler& sampler,
 	const DensityGrid& grid,
 	const Vec3f sigma_s,
 	const Vec3f sigma_a)
@@ -121,7 +114,7 @@ __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
 	while (true)
 	{
 		//distance sampling
-		t += distant_sample(majorant, rnd(rand_state));
+		t += distant_sample(majorant, sampler.getNext1D());
 
 		//sampled distance is out of volume --> break
 		if (t >= t_far)
@@ -138,14 +131,7 @@ __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
 	}
 	return throughput;
 }
-__gpu__ void branchlessONB(const Vec3f& n, Vec3f& b1, Vec3f& b2)
-{
-	float sign = copysignf(1.0f, n[2]);
-	const float a = -1.0f / (sign + n[2]);
-	const float b = n[0] * n[1] * a;
-	b1 = Vec3f(1.0f + sign * n[0] * n[0] * a, sign * b, -sign * n[0]);
-	b2 = Vec3f(b, sign + n[1] * n[1] * a, -n[1]);
-}
+
 __gpu__ Vec3f henyey_greenstein_sample(float g, float u, float v)
 {
 	const float PI_MUL_2 = 2.0f * 3.14159265358979323846f;
@@ -169,17 +155,14 @@ __gpu__ Vec3f henyey_greenstein_sample(float g, float u, float v)
 			sinTheta * sinf(phi),
 			cosTheta };
 }
-__gpu__ Vec3f local2world(const Vec3f& local, const Vec3f& x, const Vec3f& y, const Vec3f& z)
-{
-	return x * local[0] + y * local[1] + z * local[2];
-}
+
 __gpu__ Vec3f transmittance(float t, const Vec3f& sigma)
 {
 	return exp(-sigma * t);
 }
 
 // ratio tracking
-__gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, curandState* rand_state, const DensityGrid& grid, const RenderSetting& setting)
+__gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, Sampler& sampler, const DensityGrid& grid, const RenderSetting& setting)
 {
 	float t = t_near;
 	Vec3f throughput_tracking(1, 1, 1);
@@ -188,11 +171,11 @@ __gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, curandState* rand
 	while (true)
 	{
 		// sample wavelength
-		int channel = 3 * rnd(rand_state);
+		int channel = 3 * sampler.getNext1D();
 		if (channel == 3) channel--;
 		const float pmf_wavelength = 1.0f / 3.0f;
 
-		const float d_sampled = distant_sample(majorant, rnd(rand_state));
+		const float d_sampled = distant_sample(majorant, sampler.getNext1D());
 		t += d_sampled;
 		//transmit
 		if (t >= t_far)
@@ -225,7 +208,7 @@ __gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, curandState* rand
 		const Vec3f P_n = sigma_n / (sigma_s + sigma_n);
 
 		// In-Scattering
-		if (rnd(rand_state) < P_s[channel])
+		if (sampler.getNext1D() < P_s[channel])
 		{
 			// update throughput
 			const Vec3f tr = transmittance(d_sampled, Vec3f(majorant));
@@ -249,7 +232,7 @@ __gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, curandState* rand
 			Vec3f b1, b2;
 			branchlessONB(ray.direction, b1, b2);
 			//   sample scatter dir
-			Vec3f local_scatterdir = henyey_greenstein_sample(setting.g, rnd(rand_state), rnd(rand_state));
+			Vec3f local_scatterdir = henyey_greenstein_sample(setting.g, sampler.getNext1D(), sampler.getNext1D());
 			//   reset local ray to world ray
 			Vec3f scatterdir = local2world(local_scatterdir, b1, b2, ray.direction);
 			//   reset ray
@@ -267,7 +250,7 @@ __gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, curandState* rand
 		throughput_tracking *= (tr * sigma_n) / (pdf[0] + pdf[1] + pdf[2]);
 	}
 }
-__gpu__ Vec3f RayTraceNEE(const Ray& ray_in, const DensityGrid& grid, const RenderSetting& setting, curandState* rand_state)
+__gpu__ Vec3f RayTraceNEE(const Ray& ray_in, const DensityGrid& grid, const RenderSetting& setting, Sampler& sampler)
 {
 	Vec3f radiance(0);
 	Vec3f background(0.0f);
@@ -296,19 +279,19 @@ __gpu__ Vec3f RayTraceNEE(const Ray& ray_in, const DensityGrid& grid, const Rend
 				(ray.throughput[0] + ray.throughput[1] + ray.throughput[2]) /
 				3.0f,
 				1.0f);
-			if (rnd(rand_state) >= russian_roulette_prob) { break; }
+			if (sampler.getNext1D() >= russian_roulette_prob) { break; }
 			ray.throughput /= russian_roulette_prob;
 		}
 
 		// sample medium
-		bool is_scatter = sampleMedium(ray, t_near, t_far, rand_state, grid, setting);
+		bool is_scatter = sampleMedium(ray, t_near, t_far, sampler, grid, setting);
 		if (!is_scatter)
 			break;
 
 		// in-scatter--->direct light
 		float costheta = dot(setting.lightdir, ray.direction);
 		float nee_phase = henyey_greenstein_phase(costheta, setting.g);
-		Vec3f transmittance = SunLightNEE(Ray(ray.origin, setting.lightdir), rand_state, grid, setting.sigma_s, setting.sigma_a);
+		Vec3f transmittance = SunLightNEE(Ray(ray.origin, setting.lightdir), sampler, grid, setting.sigma_s, setting.sigma_a);
 		radiance += ray.throughput * nee_phase * setting.l_intensity * transmittance;
 
 		depth++;
@@ -329,21 +312,22 @@ __kernel__ void renderKernel(const DensityGrid grid, const RenderSetting setting
 
 	// local randomstate
 	curandState local_rand_state = rand_state[y * setting.width + x];
+	Sampler sampler(&local_rand_state);
 
 	Vec3f Color(0.0f);
 	for (int i = 0; i < setting.samples; i++)
 	{
 		// SSAA
 		const float u =
-			(x + rnd(&local_rand_state)) / setting.width;
+			(x + sampler.getNext1D()) / setting.width;
 		const float v =
-			(y + rnd(&local_rand_state)) / setting.height;
+			(y + sampler.getNext1D()) / setting.height;
 
 		Ray firstRay;
 		if (setting.camera.sampleRay(Vec2f(u, v), firstRay))
 		{
 			//Color += NormalIntegrate(firstRay, grid, setting);
-			Color += RayTraceNEE(firstRay, grid, setting, &local_rand_state);
+			Color += RayTraceNEE(firstRay, grid, setting, sampler);
 			// Color += RayTrace(grid, setting.lightdir, setting.l_intensity, &local_rand_state,
 			//                   setting.max_density, setting.max_depth, setting.sigma_s, setting.sigma_a, setting.g, firstRay);
 		}
