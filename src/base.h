@@ -1,5 +1,5 @@
 ﻿#pragma once
-
+#include <random>
 #include <filesystem>
 
 #include <cuda_runtime.h>
@@ -145,14 +145,32 @@ public:
 };
 
 // uniform distribution sampler
+#ifdef __CUDA__
 class Sampler
 {
 public:
-	__gpu__ Sampler(curandState* rs) : rand_state(rs) {}
+	__twin__ Sampler(curandState* rs) : rand_state(rs) {}
 	__gpu__ float getNext1D() { count++; return curand_uniform(rand_state); }
 	__gpu__ Vec2f getNext2D() { count += 2; return Vec2f(curand_uniform(rand_state), curand_uniform(rand_state)); }
+	void setSeed(uint32_t seed) {  }
 
 private:
 	curandState* rand_state = nullptr;
 	int count = 0;
 };
+#else
+class Sampler
+{
+public:
+	__twin__ Sampler() : dis(0.0f, 1.0f) {}
+	float getNext1D() { count++; return dis(gen); }
+	Vec2f getNext2D() { count += 2; return Vec2f(dis(gen), dis(gen)); }
+
+	void setSeed(uint32_t seed) { gen.seed(seed); }
+
+private:
+	std::mt19937 gen;
+	std::uniform_real_distribution<float> dis;
+	int count = 0;
+};
+#endif // __CUDA__

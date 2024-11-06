@@ -1,26 +1,8 @@
 ﻿#include <spdlog/spdlog.h>
-//#include "render.h"
-//#include "random.hpp"
 #include "base.h"
 
-void vectorAdd(const float* A, const float* B, float* C, int N);
 void render(const DensityGrid& grid, const RenderSetting& setting, float* frameBuffer);
-
-void demo()
-{
-	const int N = 1024;
-	float a[N], b[N], c[N];
-	int* dev_a, * dev_b, * dev_c;
-	for (int i = 0; i < N; ++i) // 为数组a、b赋值
-	{
-		a[i] = i;
-		b[i] = i * i;
-	}
-
-	vectorAdd(a, b, c, N);
-
-	spdlog::info("{},{},{},{}", c[0], c[1], c[2], c[1023]);
-}
+void renderX(const DensityGrid& grid, const RenderSetting& setting, float* frameBuffer);
 
 
 #include <opencv2/opencv.hpp>
@@ -60,10 +42,10 @@ int main()
 	setting.height = 512;
 	setting.width = 700;
 	setting.l_intensity = Vec3f(1.0f);
-	setting.lightdir = { 0.0, 0.0, 1.0 };
-	setting.sigma_a = Vec3f(0.01f);
-	setting.sigma_s = Vec3f(0.09f, 0.05f, 0.05f);
-	setting.samples = 100;
+	setting.lightdir = { 0.0, 0.0, 1.0f };
+	setting.sigma_a = Vec3f(1.0f);
+	setting.sigma_s = Vec3f(0.0f);
+	setting.samples = 10;
 	setting.g = -0.1;
 	setting.max_depth = 100;
 
@@ -81,7 +63,7 @@ int main()
 	std::unique_ptr<float[]> frameBuffer{ new float[setting.width * setting.height * 3] };
 
 	spdlog::info("start rendering a image");
-	render(grid, setting, frameBuffer.get());
+	renderX(grid, setting, frameBuffer.get());
 	spdlog::info("render done.");
 
 	//show Image

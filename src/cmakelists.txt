@@ -9,15 +9,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_ARCHITECTURES 80)
 set(CMAKE_CUDA_STANDARD 11)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-enable_language(CUDA)
 
+
+enable_language(CUDA)
 
 find_package(spdlog REQUIRED)
 find_package(OpenCV REQUIRED)
-
 find_package(CUDAToolkit REQUIRED)
 
-add_executable(xVolumeImaging "main.cpp" "kernel.cu" "base.h" "util.h")
+
+set(source_files 
+"main.cpp" 
+#"kernel.cu" 
+"base.h" "util.h" "kernel.cpp" "raytrace.h" "raytrace.cu")
+add_executable(xVolumeImaging ${source_files})
 
 set_target_properties(xVolumeImaging PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
@@ -32,5 +37,5 @@ PRIVATE
 
 target_compile_definitions(xVolumeImaging
     PUBLIC 
-	__CUDA__
+	#__CUDA__
 )
