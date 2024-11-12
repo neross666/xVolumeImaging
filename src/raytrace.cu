@@ -52,6 +52,12 @@ __gpu__ float henyey_greenstein_phase(float costheta, float g)
 	float denomi = 1 + g * g - 2 * g * costheta;
 	return PI_MUL_4_INV * (1 - g * g) / powf(denomi, 3.0f / 2.0f);
 }
+__gpu__ float getDensity(Vec3f xyz, Vec3f scale, cudaTextureObject_t tex3DObj)
+{
+	Vec3f uvw = (xyz + scale) / scale / 2.0f;
+	float sample = tex3D<float>(tex3DObj, uvw[0], uvw[1], uvw[2]);
+	return sample;
+}
 __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
 	Sampler& sampler,
 	const DensityGrid& grid,
@@ -80,7 +86,7 @@ __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
 			break;
 
 		// calculate several parametor in now position
-		float density = grid.getDensity(shadowRay(t));
+		float density = getDensity(shadowRay(t), grid.getBoundsScale(), grid.tex3DObj);
 		Vec3f absorp_weight = sigma_a * density;
 		Vec3f scatter_weight = sigma_s * density;
 		Vec3f null_weight = Vec3f(majorant) - absorp_weight - scatter_weight;
@@ -157,7 +163,7 @@ __gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, Sampler& sampler,
 		}
 
 		// compute russian roulette probability
-		const float density = grid.getDensity(ray(t));
+		const float density = getDensity(ray(t), grid.getBoundsScale(), grid.tex3DObj);
 		const Vec3f sigma_s = setting.sigma_s * density;
 		const Vec3f sigma_a = setting.sigma_a * density;
 		const Vec3f sigma_n = Vec3f(majorant) - sigma_a - sigma_s;
@@ -228,7 +234,10 @@ __gpu__ Vec3f RayTraceNEE(const Ray& ray_in, const DensityGrid& grid, const Rend
 			radiance += ray.throughput * background * (depth != 0);
 			break;
 		}
-		//return Vec3f((t_far - t_near) / 4.0);
+
+		//Vec3f pos = (ray(t_near) + grid.getBoundsScale()) / grid.getBoundsScale() / 2.0f;
+		//float sample = tex3D<float>(grid.tex3DObj, pos[0], pos[1], 0.5);
+		//return Vec3f(sample);
 
 		// russian roulette
 		if (depth > 0) {

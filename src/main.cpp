@@ -43,10 +43,10 @@ int main()
 	setting.width = 700;
 	setting.l_intensity = Vec3f(1.0f);
 	setting.lightdir = { 0.0, 0.0, 1.0f };
-	setting.sigma_a = Vec3f(0.0f);
+	setting.sigma_a = Vec3f(0.5f);
 	setting.sigma_s = Vec3f(0.1f);
-	setting.samples = 10;
-	setting.g = 0.0;
+	setting.samples = 1024;
+	setting.g = 0.0f;	// human skin:g∈[0.85,0.91]
 	setting.max_depth = 100;
 
 	const float aspect_ratio = static_cast<float>(setting.width) / setting.height;
@@ -55,15 +55,16 @@ int main()
 		0.0, 1.0, 0.0, 0.0,
 		0.0, 0.0, 1.0, 0.0,
 		0.0, 0.0, 5.0, 1.0);
-	const float FOV = 60.0f;
+	const float FOV = 45.0f;
 	setting.camera = PinholeCamera(aspect_ratio, c2w, FOV);
-
-	DensityGrid grid;
+	
+	std::string dataDir = DATA_DIR;
+	DensityGrid grid(dataDir+"rest.raw");
 
 	std::unique_ptr<float[]> frameBuffer{ new float[setting.width * setting.height * 3] };
 
 	spdlog::info("start rendering a image");
-	renderX(grid, setting, frameBuffer.get());
+	render(grid, setting, frameBuffer.get());
 	spdlog::info("render done.");
 
 	//show Image
