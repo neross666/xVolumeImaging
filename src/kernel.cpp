@@ -37,7 +37,7 @@ void renderX(const DensityGrid& grid, const RenderSetting& setting, float* h_fb)
 	{
 		for (uint32_t j = 0; j < width; ++j)
 		{
-			const std::unique_ptr<Sampler> sampler_per_pixel = std::make_unique<Sampler>();
+			const std::unique_ptr<Sampler> sampler_per_pixel = std::make_unique<Sampler>(nullptr);
 			sampler_per_pixel->setSeed(j + width * i);
 
 
