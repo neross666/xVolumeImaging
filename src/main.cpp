@@ -43,10 +43,10 @@ int main()
 	setting.width = 700;
 	setting.l_intensity = Vec3f(1.0f);
 	setting.lightdir = { 0.0, 0.0, 1.0f };
-	setting.sigma_a = Vec3f(1.0f);
-	setting.sigma_s = Vec3f(0.0f);
+	setting.sigma_a = Vec3f(0.0f);
+	setting.sigma_s = Vec3f(0.1f);
 	setting.samples = 10;
-	setting.g = -0.1;
+	setting.g = 0.0;
 	setting.max_depth = 100;
 
 	const float aspect_ratio = static_cast<float>(setting.width) / setting.height;
