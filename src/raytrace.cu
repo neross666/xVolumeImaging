@@ -150,6 +150,9 @@ __gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, Sampler& sampler,
 				ray.throughput *= throughput_tracking;
 			}
 
+			// reset ray
+			ray.origin = ray(t);
+
 			return false;
 		}
 
@@ -190,8 +193,8 @@ __gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, Sampler& sampler,
 			//   reset local ray to world ray
 			Vec3f scatterdir = local2world(local_scatterdir, b1, b2, ray.direction);
 			//   reset ray
+			ray.origin = ray(t);	// get origin first!!!
 			ray.direction = scatterdir;
-			ray.origin = ray(t);
 
 			return true;
 		}
@@ -207,7 +210,7 @@ __gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, Sampler& sampler,
 __gpu__ Vec3f RayTraceNEE(const Ray& ray_in, const DensityGrid& grid, const RenderSetting& setting, Sampler& sampler)
 {
 	Vec3f radiance(0);
-	Vec3f background(1.0f);
+	Vec3f background(0.0f);
 
 	Ray ray = ray_in;
 	ray.throughput = Vec3f(1.0f, 1.0f, 1.0f);
@@ -239,18 +242,15 @@ __gpu__ Vec3f RayTraceNEE(const Ray& ray_in, const DensityGrid& grid, const Rend
 
 		// sample medium
 		bool is_scatter = sampleMedium(ray, t_near, t_far, sampler, grid, setting);
-		if (!is_scatter)
+		if (is_scatter)
 		{
-			radiance += ray.throughput * background;
-			break;
+			// in-scatter--->direct light
+			float costheta = dot(setting.lightdir, ray.direction);
+			float nee_phase = henyey_greenstein_phase(costheta, setting.g);
+			Vec3f transmittance = SunLightNEE(Ray(ray.origin, setting.lightdir), sampler, grid, setting.sigma_s, setting.sigma_a);
+			radiance += ray.throughput * nee_phase * setting.l_intensity * transmittance;
+
 		}
-
-		// in-scatter--->direct light
-		float costheta = dot(setting.lightdir, ray.direction);
-		float nee_phase = henyey_greenstein_phase(costheta, setting.g);
-		Vec3f transmittance = SunLightNEE(Ray(ray.origin, setting.lightdir), sampler, grid, setting.sigma_s, setting.sigma_a);
-		radiance += ray.throughput * nee_phase * setting.l_intensity * transmittance;
-
 		depth++;
 	}
 
