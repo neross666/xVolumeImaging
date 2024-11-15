@@ -1,11 +1,11 @@
 ﻿#include <spdlog/spdlog.h>
+#include <opencv2/opencv.hpp>
 #include "base.h"
 
 void render(const DensityGrid& grid, const RenderSetting& setting, float* frameBuffer);
 void renderX(const DensityGrid& grid, const RenderSetting& setting, float* frameBuffer);
 
 
-#include <opencv2/opencv.hpp>
 void SaveMat(float* fb, int width, int height)
 {
 	cv::Mat mat(height, width, CV_8UC3);
@@ -66,7 +66,7 @@ int main()
 
 	std::unique_ptr<float[]> frameBuffer{ new float[setting.width * setting.height * 3] };
 
-	spdlog::info("start rendering a image");
+	spdlog::info("render start.");
 	render(grid, setting, frameBuffer.get());
 	spdlog::info("render done.");
 
