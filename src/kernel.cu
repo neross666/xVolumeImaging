@@ -39,8 +39,6 @@ __kernel__ void renderKernel(const DensityGrid grid, const RenderSetting setting
 		{
 			//Color += NormalIntegrate(firstRay, grid, setting);
 			Color += RayTraceNEE(firstRay, grid, setting, sampler);
-			// Color += RayTrace(grid, setting.lightdir, setting.l_intensity, &local_rand_state,
-			//                   setting.max_density, setting.max_depth, setting.sigma_s, setting.sigma_a, setting.g, firstRay);
 		}
 	}
 	Color /= float(setting.samples);

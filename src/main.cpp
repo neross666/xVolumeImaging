@@ -36,17 +36,20 @@ void SaveMat(float* fb, int width, int height)
 	cv::waitKey(0);
 }
 
+// optimization strategy:
+// 1. Random number precomputation
+// 2. First intersect with AABB boxes, then intersect in triangles
 int main()
 {
 	RenderSetting setting;
 	setting.height = 512;
 	setting.width = 700;
-	setting.l_intensity = Vec3f(1.0f);
-	setting.lightdir = { 0.0, 0.0, 1.0f };
-	setting.sigma_a = Vec3f(0.5f);
-	setting.sigma_s = Vec3f(0.1f);
+	setting.l_intensity = Vec3f(2.5f);
+	setting.lightdir = { 0.0, 0.0, -1.0f };
+	setting.sigma_a = Vec3f(0.0f);
+	setting.sigma_s = Vec3f(0.86f, 0.63f, 0.48f);
 	setting.samples = 1024;
-	setting.g = 0.0f;	// human skin:g∈[0.85,0.91]
+	setting.g = 0.0f;
 	setting.max_depth = 100;
 
 	const float aspect_ratio = static_cast<float>(setting.width) / setting.height;
@@ -55,7 +58,7 @@ int main()
 		0.0, 1.0, 0.0, 0.0,
 		0.0, 0.0, 1.0, 0.0,
 		0.0, 0.0, 5.0, 1.0);
-	const float FOV = 45.0f;
+	const float FOV = 30.0f;
 	setting.camera = PinholeCamera(aspect_ratio, c2w, FOV);
 	
 	std::string dataDir = DATA_DIR;
@@ -70,7 +73,6 @@ int main()
 	//show Image
 	SaveMat(frameBuffer.get(), setting.width, setting.height);
 
-	//demo();
 
 	return 0;
 }
