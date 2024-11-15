@@ -118,22 +118,10 @@ public:
 	DensityGrid() = default;
 	DensityGrid(std::string filename)
 	{
-		//spdlog::info("[OpenVDBGrid] loading: {}", filepath.generic_string());
-
-		// read grid data from file.
-
-		AABB bbox = getBounds();
-		//spdlog::info("[Scene] OpenVDB Volume bounding box");
-		//spdlog::info("[Scene] pMin: ({}, {}, {})", bbox.pMin[0], bbox.pMin[1],
-		//	bbox.pMin[2]);
-		//spdlog::info("[Scene] pMax: ({}, {}, {})", bbox.pMax[0], bbox.pMax[1],
-		//	bbox.pMax[2]);
-
-
 		// 
 		std::ifstream rawFile(filename, std::ios::binary);
 		if (!rawFile) {
-			std::cerr << "无法打开文件：" << filename << std::endl;
+			std::cerr << "can not read flie：" << filename << std::endl;
 			return ;
 		}
 
@@ -168,11 +156,6 @@ public:
 		return m_bounds / max_edge;
 	}
 
-	//__twin__ float getDensity(const Vec3f& pos) const
-	//{
-	//	return 0.9f;
-	//}
-
 	__twin__ float getMaxDensity() const
 	{
 		return 1.0f;
@@ -183,10 +166,10 @@ private:
 		cudaArray* cuArray;
 		cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<unsigned char>();
 
-		// 申请CUDA数组
+		// alloc
 		checkCudaErrors(cudaMalloc3DArray(&cuArray, &channelDesc, make_cudaExtent(width, height, depth)));
 
-		// 复制数据到CUDA数组
+		// copy
 		cudaMemcpy3DParms copyParams = { 0 };
 		copyParams.srcPtr = make_cudaPitchedPtr(data, width * sizeof(unsigned char), width, height);
 		copyParams.dstArray = cuArray;
@@ -194,7 +177,7 @@ private:
 		copyParams.kind = cudaMemcpyHostToDevice;
 		checkCudaErrors(cudaMemcpy3D(&copyParams));
 
-		// 设置纹理对象的描述符
+		// 
 		cudaResourceDesc resDesc;
 		memset(&resDesc, 0, sizeof(cudaResourceDesc));
 		resDesc.resType = cudaResourceTypeArray;
@@ -202,14 +185,13 @@ private:
 
 		cudaTextureDesc texDesc;
 		memset(&texDesc, 0, sizeof(cudaTextureDesc));
-		texDesc.addressMode[0] = cudaAddressModeWrap; // X轴包裹模式
-		texDesc.addressMode[1] = cudaAddressModeWrap; // Y轴包裹模式
-		texDesc.addressMode[2] = cudaAddressModeWrap; // Z轴包裹模式
-		texDesc.filterMode = cudaFilterModeLinear; // 线性插值
-		texDesc.readMode = cudaReadModeNormalizedFloat; // 读取模式
-		texDesc.normalizedCoords = true; // 坐标归一化
+		texDesc.addressMode[0] = cudaAddressModeWrap;	
+		texDesc.addressMode[1] = cudaAddressModeWrap;	
+		texDesc.addressMode[2] = cudaAddressModeWrap;	
+		texDesc.filterMode = cudaFilterModeLinear;		
+		texDesc.readMode = cudaReadModeNormalizedFloat; 
+		texDesc.normalizedCoords = true;
 
-		// 创建纹理对象
 		checkCudaErrors(cudaCreateTextureObject(&tex3DObj, &resDesc, &texDesc, nullptr));
 	}
 };

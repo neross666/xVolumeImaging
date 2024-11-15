@@ -99,8 +99,6 @@ __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
 
 __gpu__ Vec3f henyey_greenstein_sample(float g, float u, float v)
 {
-	const float PI_MUL_2 = 2.0f * 3.14159265358979323846f;
-
 	float cosTheta;
 	if (abs(g) < 1e-3)
 	{
@@ -221,8 +219,6 @@ __gpu__ Vec3f RayTraceNEE(const Ray& ray_in, const DensityGrid& grid, const Rend
 	Ray ray = ray_in;
 	ray.throughput = Vec3f(1.0f, 1.0f, 1.0f);
 
-	//Vec3f max_t = (setting->sigma_s + setting->sigma_a) * grid->getMaxDensity();
-
 	auto bbox = grid.getBounds();
 	uint32_t depth = 0;
 	while (depth < setting.max_depth)
@@ -234,10 +230,6 @@ __gpu__ Vec3f RayTraceNEE(const Ray& ray_in, const DensityGrid& grid, const Rend
 			radiance += ray.throughput * background * (depth != 0);
 			break;
 		}
-
-		//Vec3f pos = (ray(t_near) + grid.getBoundsScale()) / grid.getBoundsScale() / 2.0f;
-		//float sample = tex3D<float>(grid.tex3DObj, pos[0], pos[1], 0.5);
-		//return Vec3f(sample);
 
 		// russian roulette
 		if (depth > 0) {
@@ -258,7 +250,6 @@ __gpu__ Vec3f RayTraceNEE(const Ray& ray_in, const DensityGrid& grid, const Rend
 			float nee_phase = henyey_greenstein_phase(costheta, setting.g);
 			Vec3f transmittance = SunLightNEE(Ray(ray.origin, setting.lightdir), sampler, grid, setting.sigma_s, setting.sigma_a);
 			radiance += ray.throughput * nee_phase * setting.l_intensity * transmittance;
-
 		}
 		depth++;
 	}
