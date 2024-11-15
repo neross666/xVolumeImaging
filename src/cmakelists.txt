@@ -22,7 +22,8 @@ find_package(CUDAToolkit REQUIRED)
 set(source_files 
 "main.cpp" 
 "kernel.cu" 
-"base.h" "util.h" "kernel.cpp" "raytrace.h" "raytrace.cu")
+"raytrace.cu"
+"base.h" "util.h" "raytrace.h" )
 add_executable(xVolumeImaging ${source_files})
 
 set_target_properties(xVolumeImaging PROPERTIES
