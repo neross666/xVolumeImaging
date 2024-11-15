@@ -3,8 +3,6 @@
 #include "base.h"
 
 void render(const DensityGrid& grid, const RenderSetting& setting, float* frameBuffer);
-void renderX(const DensityGrid& grid, const RenderSetting& setting, float* frameBuffer);
-
 
 void SaveMat(float* fb, int width, int height)
 {

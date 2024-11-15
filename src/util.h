@@ -11,13 +11,13 @@
 #endif
 
 
-constexpr void checkCudaErrors(cudaError_t error) {
-	if (error != cudaSuccess)
-	{
-		//spdlog::error("ERROR: {}:{},", __FILE__, __LINE__);
-		//spdlog::error("code: {}, reason:{},", val, cudaGetErrorString(val));
-		printf("ERROR: %s:%d,", __FILE__, __LINE__);
-		printf("code:%d,reason:%s\n", error, cudaGetErrorString(error));
-		exit(1);
-	}
+#define checkCudaErrors(call)\
+{\
+  const cudaError_t error=call;\
+  if(error!=cudaSuccess)\
+  {\
+      printf("ERROR: %s:%d,",__FILE__,__LINE__);\
+      printf("code:%d,reason:%s\n",error,cudaGetErrorString(error));\
+      exit(1);\
+  }\
 }
