@@ -34,9 +34,6 @@ void SaveMat(float* fb, int width, int height)
 	cv::waitKey(0);
 }
 
-// optimization strategy:
-// 1. Random number precomputation
-// 2. First intersect with AABB boxes, then intersect in triangles
 int main()
 {
 	RenderSetting setting;
