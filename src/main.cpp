@@ -60,6 +60,7 @@ int main()
 	DensityGrid grid(dataDir+"rest.raw");
 
 	std::unique_ptr<float[]> frameBuffer{ new float[setting.width * setting.height * 3] };
+		
 
 	spdlog::info("render start.");
 	render(grid, setting, frameBuffer.get());

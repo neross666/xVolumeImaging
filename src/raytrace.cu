@@ -56,7 +56,7 @@ __gpu__ float getDensity(Vec3f xyz, Vec3f scale, cudaTextureObject_t tex3DObj)
 {
 	Vec3f uvw = (xyz + scale) / scale / 2.0f;
 	float sample = tex3D<float>(tex3DObj, uvw[0], uvw[1], uvw[2]);
-	return sample;
+	return sample > 0.05f ? sample : 0.0f;
 }
 __gpu__ Vec3f SunLightNEE(const Ray shadowRay,
 	Sampler& sampler,
@@ -119,6 +119,21 @@ __gpu__ Vec3f henyey_greenstein_sample(float g, float u, float v)
 			cosTheta };
 }
 
+__gpu__ int sampleWavelength(const Vec3f& throughput, const Vec3f& albedo,
+	Sampler& sampler, Vec3f& pmf)
+{
+	// create empirical discrete distribution
+	const Vec3f throughput_albedo = throughput * albedo;
+	DiscreteEmpiricalDistribution1D distribution(throughput_albedo);
+	pmf = Vec3f(distribution.getPDF(0), distribution.getPDF(1),
+		distribution.getPDF(2));
+
+	// sample index of wavelength from empirical discrete distribution
+	float _pdf;
+	const uint32_t channel = distribution.sample(sampler.getNext1D(), _pdf);
+	return channel;
+}
+
 // ratio tracking
 __gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, Sampler& sampler, const DensityGrid& grid, const RenderSetting& setting)
 {
@@ -129,9 +144,10 @@ __gpu__ bool sampleMedium(Ray& ray, float t_near, float t_far, Sampler& sampler,
 	while (true)
 	{
 		// sample wavelength
-		int channel = 3 * sampler.getNext1D();
-		if (channel == 3) channel--;
-		const float pmf_wavelength = 1.0f / 3.0f;
+		Vec3f pmf_wavelength;
+		const int channel = sampleWavelength(ray.throughput * throughput_tracking, 
+			(Vec3f(majorant) - setting.sigma_a) / majorant, sampler, pmf_wavelength);
+				
 
 		const float d_sampled = distant_sample(majorant, sampler.getNext1D());
 		t += d_sampled;

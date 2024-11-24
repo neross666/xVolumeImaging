@@ -197,7 +197,6 @@ private:
 };
 
 // uniform distribution sampler
-#ifdef __CUDA__
 class Sampler
 {
 public:
@@ -210,19 +209,54 @@ private:
 	curandState* rand_state = nullptr;
 	int count = 0;
 };
-#else
-class Sampler
+
+// sample value from 1D discrete empirical distribution
+class DiscreteEmpiricalDistribution1D
 {
-public:
-	__twin__ Sampler() : dis(0.0f, 1.0f) {}
-	float getNext1D() { count++; return dis(gen); }
-	Vec2f getNext2D() { count += 2; return Vec2f(dis(gen), dis(gen)); }
-
-	void setSeed(uint32_t seed) { gen.seed(seed); }
-
 private:
-	std::mt19937 gen;
-	std::uniform_real_distribution<float> dis;
-	int count = 0;
+	static const int nsize = 3;
+	float cdf[nsize+1];
+	float pdf[nsize];
+
+public:
+	__gpu__ DiscreteEmpiricalDistribution1D(const Vec3f& values)
+	{
+		// sum f
+		float sum = 0;
+		for (std::size_t i = 0; i < nsize; ++i) { sum += values[i]; }
+
+		// compute cdf
+		cdf[0] = 0.0f;
+		for (std::size_t i = 1; i < nsize + 1; ++i) {
+			cdf[i] = cdf[i - 1] + values[i - 1] / sum;
+		}
+
+		// compute pdf
+		for (std::size_t i = 0; i < nsize; ++i) { pdf[i] = cdf[i + 1] - cdf[i]; }
+	}
+
+	__gpu__ ~DiscreteEmpiricalDistribution1D()
+	{
+	}
+
+	__gpu__ int sample(float u, float& pdf) const
+	{
+		// inverse cdf
+		int x = 0;
+		for (int i = 0; i < nsize + 1; ++i) {
+			if (cdf[i] > u)
+			{
+				x = i;
+				break;
+			}
+		}
+
+		// compute pdf
+		pdf = cdf[x] - cdf[x - 1];
+
+		// NOTE: cdf's index is +1 from values
+		return x - 1;
+	}
+
+	__gpu__ float getPDF(uint32_t i) const { return pdf[i]; }
 };
-#endif // __CUDA__

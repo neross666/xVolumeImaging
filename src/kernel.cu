@@ -11,7 +11,6 @@ __kernel__ void random_init(int max_x, int max_y, curandState* rand_state) {
 }
 
 
-// kernel函数似乎不允许const T*、const T& 类型参数？！
 __kernel__ void renderKernel(const DensityGrid grid, const RenderSetting setting, float* fb, curandState* rand_state)
 {
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
