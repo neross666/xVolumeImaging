@@ -11,3 +11,4 @@ Implementing Monte Carlo path tracing based Volume Rendering using CUDA.
 ## Todo List
 - Random number precomputation
 - First intersect with AABB boxes, then intersect in triangles
+- Direct mathematical analytic intersection of cones
