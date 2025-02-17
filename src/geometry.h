@@ -34,6 +34,7 @@ __twin__ T Xmin(T a, T b) {
 	return (a < b) ? a : b;
 }
 
+#pragma region Vec2
 template <typename T>
 struct Vec2 {
 	T v[2];
@@ -139,7 +140,11 @@ __twin__ inline Vec2<T> operator/(float k, const Vec2<T> v2)
 }
 
 using Vec2f = Vec2<float>;
+using Vec2f = Vec2<float>;
 
+#pragma endregion Vec2
+
+#pragma region Vec3
 template <typename T>
 struct Vec3 {
 	T v[3];
@@ -269,23 +274,36 @@ __twin__ inline Vec3<T> cross(const Vec3<T>& v1, const Vec3<T>& v2)
 		v1[0] * v2[1] - v1[1] * v2[0]);
 }
 
-using Vec3f = Vec3<float>;
-using Vec3ui = Vec3<uint32_t>;
-
-__twin__ inline float length(const Vec3f& v) {
-	return sqrt(dot(v, v));
+template <typename T>
+__twin__ inline float length(const Vec3<T>& v) {
+	return std::sqrt(dot(v, v));
 }
-__twin__ inline float length2(const Vec3f& v) {
+
+template <typename T>
+__twin__ inline float length2(const Vec3<T>& v) {
 	return dot(v, v);
 }
-__twin__ inline Vec3f normalize(const Vec3f& v) {
-	return v / length(v);
+
+template <typename T>
+__twin__ inline Vec3<T> normalize(const Vec3<T>& v) {
+	auto l = length(v);
+	if (l != 0)
+		return v / length(v);
+	return Vec3<T>(0);
 }
 
-__twin__ inline Vec3f exp(const Vec3f& v) {
-	return Vec3f(std::exp(v[0]), std::exp(v[1]), std::exp(v[2]));
+template <typename T>
+__twin__ inline Vec3<T> exp(const Vec3<T>& v) {
+	return Vec3<T>(std::exp(v[0]), std::exp(v[1]), std::exp(v[2]));
 }
 
+using Vec3f = Vec3<float>;
+using Vec3ui = Vec3<uint32_t>;
+#pragma endregion Vec3
+
+
+
+#pragma region Matrix44
 //[comment]
 // Implementation of a generic 4x4 Matrix class - Same thing here than with the Vec3 class. It uses
 // a template which is maybe less useful than with vectors but it can be used to
@@ -327,121 +345,6 @@ public:
 	__twin__ const T* operator [] (uint8_t i) const { return x[i]; }
 	__twin__ T* operator [] (uint8_t i) { return x[i]; }
 
-	// Multiply the current matrix with another matrix (rhs)
-	__twin__ Matrix44 operator * (const Matrix44& v) const
-	{
-		Matrix44 tmp;
-		multiply(*this, v, tmp);
-
-		return tmp;
-	}
-
-	//[comment]
-	// To make it easier to understand how a matrix multiplication works, the fragment of code
-	// included within the #if-#else statement, show how this works if you were to iterate
-	// over the coefficients of the resulting matrix (a). However you will often see this
-	// multiplication being done using the code contained within the #else-#end statement.
-	// It is exactly the same as the first fragment only we have litteraly written down
-	// as a series of operations what would actually result from executing the two for() loops
-	// contained in the first fragment. It is supposed to be faster, however considering
-	// matrix multiplicatin is not necessarily that common, this is probably not super
-	// useful nor really necessary (but nice to have -- and it gives you an example of how
-	// it can be done, as this how you will this operation implemented in most libraries).
-	//[/comment]
-	__twin__ static void multiply(const Matrix44<T>& a, const Matrix44& b, Matrix44& c)
-	{
-#if 0
-		for (uint8_t i = 0; i < 4; ++i) {
-			for (uint8_t j = 0; j < 4; ++j) {
-				c[i][j] = a[i][0] * b[0][j] + a[i][1] * b[1][j] +
-					a[i][2] * b[2][j] + a[i][3] * b[3][j];
-			}
-		}
-#else
-		// A restric qualified pointer (or reference) is basically a promise
-		// to the compiler that for the scope of the pointer, the target of the
-		// pointer will only be accessed through that pointer (and pointers
-		// copied from it.
-		const T* __restrict ap = &a.x[0][0];
-		const T* __restrict bp = &b.x[0][0];
-		T* __restrict cp = &c.x[0][0];
-
-		T a0, a1, a2, a3;
-
-		a0 = ap[0];
-		a1 = ap[1];
-		a2 = ap[2];
-		a3 = ap[3];
-
-		cp[0] = a0 * bp[0] + a1 * bp[4] + a2 * bp[8] + a3 * bp[12];
-		cp[1] = a0 * bp[1] + a1 * bp[5] + a2 * bp[9] + a3 * bp[13];
-		cp[2] = a0 * bp[2] + a1 * bp[6] + a2 * bp[10] + a3 * bp[14];
-		cp[3] = a0 * bp[3] + a1 * bp[7] + a2 * bp[11] + a3 * bp[15];
-
-		a0 = ap[4];
-		a1 = ap[5];
-		a2 = ap[6];
-		a3 = ap[7];
-
-		cp[4] = a0 * bp[0] + a1 * bp[4] + a2 * bp[8] + a3 * bp[12];
-		cp[5] = a0 * bp[1] + a1 * bp[5] + a2 * bp[9] + a3 * bp[13];
-		cp[6] = a0 * bp[2] + a1 * bp[6] + a2 * bp[10] + a3 * bp[14];
-		cp[7] = a0 * bp[3] + a1 * bp[7] + a2 * bp[11] + a3 * bp[15];
-
-		a0 = ap[8];
-		a1 = ap[9];
-		a2 = ap[10];
-		a3 = ap[11];
-
-		cp[8] = a0 * bp[0] + a1 * bp[4] + a2 * bp[8] + a3 * bp[12];
-		cp[9] = a0 * bp[1] + a1 * bp[5] + a2 * bp[9] + a3 * bp[13];
-		cp[10] = a0 * bp[2] + a1 * bp[6] + a2 * bp[10] + a3 * bp[14];
-		cp[11] = a0 * bp[3] + a1 * bp[7] + a2 * bp[11] + a3 * bp[15];
-
-		a0 = ap[12];
-		a1 = ap[13];
-		a2 = ap[14];
-		a3 = ap[15];
-
-		cp[12] = a0 * bp[0] + a1 * bp[4] + a2 * bp[8] + a3 * bp[12];
-		cp[13] = a0 * bp[1] + a1 * bp[5] + a2 * bp[9] + a3 * bp[13];
-		cp[14] = a0 * bp[2] + a1 * bp[6] + a2 * bp[10] + a3 * bp[14];
-		cp[15] = a0 * bp[3] + a1 * bp[7] + a2 * bp[11] + a3 * bp[15];
-#endif
-	}
-
-	// \brief return a transposed copy of the current matrix as a new matrix
-	__twin__ Matrix44 transposed() const
-	{
-#if 0
-		Matrix44 t;
-		for (uint8_t i = 0; i < 4; ++i) {
-			for (uint8_t j = 0; j < 4; ++j) {
-				t[i][j] = x[j][i];
-			}
-		}
-
-		return t;
-#else
-		return Matrix44(x[0][0],
-			x[1][0],
-			x[2][0],
-			x[3][0],
-			x[0][1],
-			x[1][1],
-			x[2][1],
-			x[3][1],
-			x[0][2],
-			x[1][2],
-			x[2][2],
-			x[3][2],
-			x[0][3],
-			x[1][3],
-			x[2][3],
-			x[3][3]);
-#endif
-	}
-
 	// \brief transpose itself
 	__twin__ Matrix44& transpose()
 	{
@@ -466,150 +369,10 @@ public:
 		return *this;
 	}
 
-	//[comment]
-	// This method needs to be used for point-matrix multiplication. Keep in mind
-	// we don't make the distinction between points and vectors at least from
-	// a programming point of view, as both (as well as normals) are declared as Vec3.
-	// However, mathematically they need to be treated differently. Points can be translated
-	// when translation for vectors is meaningless. Furthermore, points are implicitly
-	// be considered as having homogeneous coordinates. Thus the w coordinates needs
-	// to be computed and to convert the coordinates from homogeneous back to Cartesian
-	// coordinates, we need to divided x, y z by w.
-	//
-	// The coordinate w is more often than not equals to 1, but it can be different than
-	// 1 especially when the matrix is projective matrix (perspective projection matrix).
-	//[/comment]
-	template<typename S>
-	__twin__ void multVecMatrix(const Vec3<S>& src, Vec3<S>& dst) const
-	{
-		S a, b, c, w;
-
-		a = src[0] * x[0][0] + src[1] * x[1][0] + src[2] * x[2][0] + x[3][0];
-		b = src[0] * x[0][1] + src[1] * x[1][1] + src[2] * x[2][1] + x[3][1];
-		c = src[0] * x[0][2] + src[1] * x[1][2] + src[2] * x[2][2] + x[3][2];
-		w = src[0] * x[0][3] + src[1] * x[1][3] + src[2] * x[2][3] + x[3][3];
-
-		dst[0] = a / w;
-		dst[1] = b / w;
-		dst[2] = c / w;
-	}
-
-	//[comment]
-	// This method needs to be used for vector-matrix multiplication. Look at the differences
-	// with the previous method (to compute a point-matrix multiplication). We don't use
-	// the coefficients in the matrix that account for translation (x[3][0], x[3][1], x[3][2])
-	// and we don't compute w.
-	//[/comment]
-	template<typename S>
-	__twin__ void multDirMatrix(const Vec3<S>& src, Vec3<S>& dst) const
-	{
-		S a, b, c;
-
-		a = src[0] * x[0][0] + src[1] * x[1][0] + src[2] * x[2][0];
-		b = src[0] * x[0][1] + src[1] * x[1][1] + src[2] * x[2][1];
-		c = src[0] * x[0][2] + src[1] * x[1][2] + src[2] * x[2][2];
-
-		dst[0] = a;
-		dst[1] = b;
-		dst[2] = c;
-	}
-
-	//[comment]
-	// Compute the inverse of the matrix using the Gauss-Jordan (or reduced row) elimination method.
-	// We didn't explain in the lesson on Geometry how the inverse of matrix can be found. Don't
-	// worry at this point if you don't understand how this works. But we will need to be able to
-	// compute the inverse of matrices in the first lessons of the "Foundation of 3D Rendering" section,
-	// which is why we've added this code. For now, you can just use it and rely on it
-	// for doing what it's supposed to do. If you want to learn how this works though, check the lesson
-	// on called Matrix Inverse in the "Mathematics and Physics of Computer Graphics" section.
-	//[/comment]
-	__twin__ Matrix44 inverse() const
-	{
-		int i, j, k;
-		Matrix44 s;
-		Matrix44 t(*this);
-
-		// Forward elimination
-		for (i = 0; i < 3; i++) {
-			int pivot = i;
-
-			T pivotsize = t[i][i];
-
-			if (pivotsize < 0)
-				pivotsize = -pivotsize;
-
-			for (j = i + 1; j < 4; j++) {
-				T tmp = t[j][i];
-
-				if (tmp < 0)
-					tmp = -tmp;
-
-				if (tmp > pivotsize) {
-					pivot = j;
-					pivotsize = tmp;
-				}
-			}
-
-			if (pivotsize == 0) {
-				// Cannot invert singular matrix
-				return Matrix44();
-			}
-
-			if (pivot != i) {
-				for (j = 0; j < 4; j++) {
-					T tmp;
-
-					tmp = t[i][j];
-					t[i][j] = t[pivot][j];
-					t[pivot][j] = tmp;
-
-					tmp = s[i][j];
-					s[i][j] = s[pivot][j];
-					s[pivot][j] = tmp;
-				}
-			}
-
-			for (j = i + 1; j < 4; j++) {
-				T f = t[j][i] / t[i][i];
-
-				for (k = 0; k < 4; k++) {
-					t[j][k] -= f * t[i][k];
-					s[j][k] -= f * s[i][k];
-				}
-			}
-		}
-
-		// Backward substitution
-		for (i = 3; i >= 0; --i) {
-			T f;
-
-			if ((f = t[i][i]) == 0) {
-				// Cannot invert singular matrix
-				return Matrix44();
-			}
-
-			for (j = 0; j < 4; j++) {
-				t[i][j] /= f;
-				s[i][j] /= f;
-			}
-
-			for (j = 0; j < i; j++) {
-				f = t[j][i];
-
-				for (k = 0; k < 4; k++) {
-					t[j][k] -= f * t[i][k];
-					s[j][k] -= f * s[i][k];
-				}
-			}
-		}
-
-		return s;
-	}
-
 	// \brief set current matrix to its inverse
 	__twin__ const Matrix44<T>& invert()
 	{
-		*this = inverse();
+		*this = inverse(*this);
 		return *this;
 	}
 
@@ -645,20 +408,211 @@ public:
 	}
 };
 
-typedef Matrix44<float> Matrix44f;
-
-
-template<typename S>
-__twin__ Vec3<S> multVecMatrix(const Vec3<S>& src, const Matrix44<S>& x)
+template<typename T>
+__twin__ Matrix44<T> transposed(const Matrix44<T>& x)
 {
-	Vec3<S> dst;
+#if 0
+	Matrix44 t;
+	for (uint8_t i = 0; i < 4; ++i) {
+		for (uint8_t j = 0; j < 4; ++j) {
+			t[i][j] = x[j][i];
+		}
+	}
 
-	S a, b, c, w;
+	return t;
+#else
+	return Matrix44<T>(x[0][0],
+		x[1][0],
+		x[2][0],
+		x[3][0],
+		x[0][1],
+		x[1][1],
+		x[2][1],
+		x[3][1],
+		x[0][2],
+		x[1][2],
+		x[2][2],
+		x[3][2],
+		x[0][3],
+		x[1][3],
+		x[2][3],
+		x[3][3]);
+#endif
+}
 
-	a = src[0] * x[0][0] + src[1] * x[1][0] + src[2] * x[2][0] + x[3][0];
-	b = src[0] * x[0][1] + src[1] * x[1][1] + src[2] * x[2][1] + x[3][1];
-	c = src[0] * x[0][2] + src[1] * x[1][2] + src[2] * x[2][2] + x[3][2];
-	w = src[0] * x[0][3] + src[1] * x[1][3] + src[2] * x[2][3] + x[3][3];
+template<typename T>
+__twin__ Matrix44<T> inverse(const Matrix44<T>& x)
+{
+	int i, j, k;
+	Matrix44<T> s;
+	Matrix44<T> t(x);
+
+	// Forward elimination
+	for (i = 0; i < 3; i++) {
+		int pivot = i;
+
+		T pivotsize = t[i][i];
+
+		if (pivotsize < 0)
+			pivotsize = -pivotsize;
+
+		for (j = i + 1; j < 4; j++) {
+			T tmp = t[j][i];
+
+			if (tmp < 0)
+				tmp = -tmp;
+
+			if (tmp > pivotsize) {
+				pivot = j;
+				pivotsize = tmp;
+			}
+		}
+
+		if (pivotsize == 0) {
+			// Cannot invert singular matrix
+			return Matrix44<T>();
+		}
+
+		if (pivot != i) {
+			for (j = 0; j < 4; j++) {
+				T tmp;
+
+				tmp = t[i][j];
+				t[i][j] = t[pivot][j];
+				t[pivot][j] = tmp;
+
+				tmp = s[i][j];
+				s[i][j] = s[pivot][j];
+				s[pivot][j] = tmp;
+			}
+		}
+
+		for (j = i + 1; j < 4; j++) {
+			T f = t[j][i] / t[i][i];
+
+			for (k = 0; k < 4; k++) {
+				t[j][k] -= f * t[i][k];
+				s[j][k] -= f * s[i][k];
+			}
+		}
+	}
+
+	// Backward substitution
+	for (i = 3; i >= 0; --i) {
+		T f;
+
+		if ((f = t[i][i]) == 0) {
+			// Cannot invert singular matrix
+			return Matrix44<T>();
+		}
+
+		for (j = 0; j < 4; j++) {
+			t[i][j] /= f;
+			s[i][j] /= f;
+		}
+
+		for (j = 0; j < i; j++) {
+			f = t[j][i];
+
+			for (k = 0; k < 4; k++) {
+				t[j][k] -= f * t[i][k];
+				s[j][k] -= f * s[i][k];
+			}
+		}
+	}
+
+	return s;
+}
+
+//[comment]
+// To make it easier to understand how a matrix multiplication works, the fragment of code
+// included within the #if-#else statement, show how this works if you were to iterate
+// over the coefficients of the resulting matrix (a). However you will often see this
+// multiplication being done using the code contained within the #else-#end statement.
+// It is exactly the same as the first fragment only we have litteraly written down
+// as a series of operations what would actually result from executing the two for() loops
+// contained in the first fragment. It is supposed to be faster, however considering
+// matrix multiplicatin is not necessarily that common, this is probably not super
+// useful nor really necessary (but nice to have -- and it gives you an example of how
+// it can be done, as this how you will this operation implemented in most libraries).
+//[/comment]
+template<typename T>
+__twin__ Matrix44<T> multiply(const Matrix44<T>& a, const Matrix44<T>& b)
+{
+	Matrix44<T> c;
+#if 0
+	for (uint8_t i = 0; i < 4; ++i) {
+		for (uint8_t j = 0; j < 4; ++j) {
+			c[i][j] = a[i][0] * b[0][j] + a[i][1] * b[1][j] +
+				a[i][2] * b[2][j] + a[i][3] * b[3][j];
+		}
+	}
+#else
+	// A restric qualified pointer (or reference) is basically a promise
+	// to the compiler that for the scope of the pointer, the target of the
+	// pointer will only be accessed through that pointer (and pointers
+	// copied from it.
+	const T* __restrict ap = &a.x[0][0];
+	const T* __restrict bp = &b.x[0][0];
+	T* __restrict cp = &c.x[0][0];
+
+	T a0, a1, a2, a3;
+
+	a0 = ap[0];
+	a1 = ap[1];
+	a2 = ap[2];
+	a3 = ap[3];
+
+	cp[0] = a0 * bp[0] + a1 * bp[4] + a2 * bp[8] + a3 * bp[12];
+	cp[1] = a0 * bp[1] + a1 * bp[5] + a2 * bp[9] + a3 * bp[13];
+	cp[2] = a0 * bp[2] + a1 * bp[6] + a2 * bp[10] + a3 * bp[14];
+	cp[3] = a0 * bp[3] + a1 * bp[7] + a2 * bp[11] + a3 * bp[15];
+
+	a0 = ap[4];
+	a1 = ap[5];
+	a2 = ap[6];
+	a3 = ap[7];
+
+	cp[4] = a0 * bp[0] + a1 * bp[4] + a2 * bp[8] + a3 * bp[12];
+	cp[5] = a0 * bp[1] + a1 * bp[5] + a2 * bp[9] + a3 * bp[13];
+	cp[6] = a0 * bp[2] + a1 * bp[6] + a2 * bp[10] + a3 * bp[14];
+	cp[7] = a0 * bp[3] + a1 * bp[7] + a2 * bp[11] + a3 * bp[15];
+
+	a0 = ap[8];
+	a1 = ap[9];
+	a2 = ap[10];
+	a3 = ap[11];
+
+	cp[8] = a0 * bp[0] + a1 * bp[4] + a2 * bp[8] + a3 * bp[12];
+	cp[9] = a0 * bp[1] + a1 * bp[5] + a2 * bp[9] + a3 * bp[13];
+	cp[10] = a0 * bp[2] + a1 * bp[6] + a2 * bp[10] + a3 * bp[14];
+	cp[11] = a0 * bp[3] + a1 * bp[7] + a2 * bp[11] + a3 * bp[15];
+
+	a0 = ap[12];
+	a1 = ap[13];
+	a2 = ap[14];
+	a3 = ap[15];
+
+	cp[12] = a0 * bp[0] + a1 * bp[4] + a2 * bp[8] + a3 * bp[12];
+	cp[13] = a0 * bp[1] + a1 * bp[5] + a2 * bp[9] + a3 * bp[13];
+	cp[14] = a0 * bp[2] + a1 * bp[6] + a2 * bp[10] + a3 * bp[14];
+	cp[15] = a0 * bp[3] + a1 * bp[7] + a2 * bp[11] + a3 * bp[15];
+
+	return c;
+#endif
+}
+
+template<typename T>
+__twin__ Vec3<T> multVecMatrix(const Vec3<T>& src, const Matrix44<T> x)
+{
+	Vec3<T> dst;
+
+	T a, b, c, w;
+
+	a = src[0] * x[0][0] + src[1] * x[0][1] + src[2] * x[0][2] + x[0][3];
+	b = src[0] * x[1][0] + src[1] * x[1][1] + src[2] * x[1][2] + x[1][3];
+	c = src[0] * x[2][0] + src[1] * x[2][1] + src[2] * x[2][2] + x[2][3];
+	w = src[0] * x[3][0] + src[1] * x[3][1] + src[2] * x[3][2] + x[3][3];
 
 	dst[0] = a / w;
 	dst[1] = b / w;
@@ -667,16 +621,16 @@ __twin__ Vec3<S> multVecMatrix(const Vec3<S>& src, const Matrix44<S>& x)
 	return dst;
 }
 
-template<typename S>
-__twin__ Vec3<S> multDirMatrix(const Vec3<S>& src, const Matrix44<S>& x)
+template<typename T>
+__twin__ Vec3<T> multDirMatrix(const Vec3<T>& src, const Matrix44<T>& x)
 {
-	Vec3<S> dst;
+	Vec3<T> dst;
 
-	S a, b, c;
+	T a, b, c;
 
-	a = src[0] * x[0][0] + src[1] * x[1][0] + src[2] * x[2][0];
-	b = src[0] * x[0][1] + src[1] * x[1][1] + src[2] * x[2][1];
-	c = src[0] * x[0][2] + src[1] * x[1][2] + src[2] * x[2][2];
+	a = src[0] * x[0][0] + src[1] * x[0][1] + src[2] * x[0][2];
+	b = src[0] * x[1][0] + src[1] * x[1][1] + src[2] * x[1][2];
+	c = src[0] * x[2][0] + src[1] * x[2][1] + src[2] * x[2][2];
 
 	dst[0] = a;
 	dst[1] = b;
@@ -685,6 +639,100 @@ __twin__ Vec3<S> multDirMatrix(const Vec3<S>& src, const Matrix44<S>& x)
 	return dst;
 }
 
+using Matrix44f = Matrix44<float>;
+
+#pragma endregion Matrix44
+
+
+#pragma region Quat
+template<typename T>
+class Quat {
+public:
+	Quat() = default;
+	constexpr Quat(T s, T i, T j, T k)
+		: r(s), v(i, j, k) {
+	}
+	constexpr Quat(T s, Vec3<T> d)
+		: r(s), v(d) {
+	}
+	constexpr Quat<T>& setAxisAngle(const Vec3<T>& axis, T radians) {
+		v = normalize(axis) * std::sin(radians / 2);
+		r = std::cos(radians / 2);
+		return *this;
+	}
+	T r{ 1 }; // The real part
+	Vec3<T> v{ 0,0,0 }; // The imaginary vector
+};
+
+template<typename T>
+inline Quat<T> normalize(const Quat<T>& q)
+{
+	Quat<T> p;
+	T x = q.v[0];
+	T y = q.v[1];
+	T z = q.v[2];
+	T len = std::sqrt(q.r * q.r + x * x + y * y + z * z);
+	if (len != 0) {
+		p.r = q.r / len;
+		p.v[0] = x / len;
+		p.v[1] = y / len;
+		p.v[2] = z / len;
+	}
+	return p;
+}
+
+template<typename T>
+constexpr inline Quat<T> operator* (const Quat<T>& q1, const Quat<T>& q2) {
+	return Quat<T>(
+		q1.r * q2.r - dot(q1.v, q2.v), q1.r * q2.v + q1.v * q2.r + cross(q1.v, q2.v));
+}
+
+template<typename T>
+constexpr Matrix44<T> quatToMatrix44(const Quat<T>& q) {
+	auto normal_q = normalize(q);
+
+	T r = normal_q.r;
+	T x = normal_q.v[0];
+	T y = normal_q.v[1];
+	T z = normal_q.v[2];
+
+	T xx = x * x;
+	T xy = x * y;
+	T xz = x * z;
+	T xw = x * r;
+
+	T yy = y * y;
+	T yz = y * z;
+	T yw = y * r;
+
+	T zz = z * z;
+	T zw = z * r;
+
+	return Matrix44<T>(
+		1 - 2 * (yy + zz),
+		2 * (xy - zw),
+		2 * (xz + yw),
+		0,
+
+		2 * (xy + zw),
+		1 - 2 * (xx + zz),
+		2 * (yz - xw),
+		0,
+
+		2 * (xz - yw),
+		2 * (yz + xw),
+		1 - 2 * (xx + yy),
+		0,
+
+		0,
+		0,
+		0,
+		1);
+}
+
+using Quatf = Quat<float>;
+
+#pragma endregion Quat
 
 
 __twin__ inline void branchlessONB(const Vec3f& n, Vec3f& b1, Vec3f& b2)
@@ -710,3 +758,4 @@ __twin__ inline Vec3f local2world(const Vec3f& local, const Vec3f& x, const Vec3
 {
 	return x * local[0] + y * local[1] + z * local[2];
 }
+

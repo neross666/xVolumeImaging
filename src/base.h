@@ -26,6 +26,7 @@ public:
 	__twin__ Vec3f operator()(float t) const { return origin + t * direction; }
 };
 
+
 class PinholeCamera
 {
 private:
@@ -40,13 +41,7 @@ public:
 		float FOV = 90.0f) : aspect_ratio(aspect_ratio_), camera2world(c2w)
 	{
 		auto forward = multDirMatrix(Vec3f(0.0f, 0.0f, -1.0f), c2w);
-		scale = std::tan(0.5f * deg2rad(FOV));
-
-		//spdlog::info("[Camera] position: ({}, {}, {})", camera2world[3][0], camera2world[3][1],
-		//	camera2world[3][2]);
-		//spdlog::info("[Camera] forward: ({}, {}, {})", forward[0], forward[1],
-		//	forward[2]);
-		//spdlog::info("[PinholeCamera] scale: {}", scale);
+		scale = std::tan(0.5f * deg2rad(FOV));				
 	}
 
 	void setTransform(const Matrix44f& c2w) {
@@ -58,7 +53,7 @@ public:
 		const Vec3f dir((2 * pixel[0] - 1) * scale, (1 - 2 * pixel[1]) * scale / aspect_ratio, -1);
 
 		ray.direction = normalize(multDirMatrix(dir, camera2world));
-		ray.origin = Vec3f(camera2world[3][0], camera2world[3][1], camera2world[3][2]);
+		ray.origin = Vec3f(camera2world[0][3], camera2world[1][3], camera2world[2][3]);
 
 		return true;
 	}

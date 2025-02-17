@@ -51,8 +51,8 @@ int main()
 	const Matrix44f c2w(
 		1.0, 0.0, 0.0, 0.0,
 		0.0, 1.0, 0.0, 0.0,
-		0.0, 0.0, 1.0, 0.0,
-		0.0, 0.0, 5.0, 1.0);
+		0.0, 0.0, 1.0, 5.0,
+		0.0, 0.0, 0.0, 1.0);
 	const float FOV = 30.0f;
 	setting.camera = PinholeCamera(aspect_ratio, c2w, FOV);
 	

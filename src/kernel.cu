@@ -23,7 +23,7 @@ __kernel__ void renderKernel(const DensityGrid grid, const RenderSetting setting
 	// local randomstate
 	curandState local_rand_state = rand_state[y * setting.width + x];
 	Sampler sampler(&local_rand_state);
-
+	
 	Vec3f Color(0.0f);
 	for (int i = 0; i < setting.samples; i++)
 	{
