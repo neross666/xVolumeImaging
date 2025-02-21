@@ -5,9 +5,10 @@ Implementing Monte Carlo path tracing based Volume Rendering using CUDA.
 ## Dependencies
 - cuda
 - spdlog
-- opencv
+- opencv,for displaying final image only
 
 
 ## Todo List
 - Random number precomputation
 - First intersect with AABB boxes, then intersect in triangles
+- Direct mathematical analytic intersection of cones
