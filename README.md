@@ -4,8 +4,6 @@ Implementing Monte Carlo path tracing based Volume Rendering using CUDA.
 
 ## Dependencies
 - cuda
-- spdlog
-- opencv,for displaying final image only
 
 
 ## Todo List
