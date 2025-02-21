@@ -13,14 +13,12 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 enable_language(CUDA)
 
-find_package(spdlog REQUIRED)
-find_package(OpenCV REQUIRED)
 find_package(CUDAToolkit REQUIRED)
-
 
 
 set(source_files 
 "main.cpp" 
+"window.cpp"
 "kernel.cu" 
 "raytrace.cu"
 "base.h" "util.h" "raytrace.h" )
@@ -32,12 +30,13 @@ set_target_properties(xVolumeImaging PROPERTIES
 
 target_link_libraries(xVolumeImaging 
 PRIVATE 
-    spdlog::spdlog
     CUDA::cudart
-	${OpenCV_LIBS}
     )
+
 
 target_compile_definitions(xVolumeImaging
     PUBLIC 
 	__CUDA__
+	UNICODE
+	NOMINMAX
 )

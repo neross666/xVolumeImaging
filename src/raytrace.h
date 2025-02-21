@@ -1,4 +1,5 @@
-﻿#include "base.h"
+﻿#pragma once
+#include "base.h"
 
 __gpu__ Vec3f gamma(const Vec3f& color);
 

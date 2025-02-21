@@ -139,7 +139,7 @@ __twin__ inline Vec2<T> operator/(float k, const Vec2<T> v2)
 	return Vec2<T>(k / v2[0], k / v2[1]);
 }
 
-using Vec2f = Vec2<float>;
+using Vec2i = Vec2<int>;
 using Vec2f = Vec2<float>;
 
 #pragma endregion Vec2

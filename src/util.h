@@ -1,4 +1,11 @@
-﻿#ifdef __CUDA__
+﻿#pragma once
+
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+#include <curand_kernel.h>
+#include <cuda_texture_types.h>
+
+#ifdef __CUDA__
 #define __twin__ __host__ __device__
 #define __gpu__ __device__
 #define __cpu__ __host__

@@ -2,11 +2,6 @@
 #include <random>
 #include <fstream>
 
-#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-#include <curand_kernel.h>
-#include <cuda_texture_types.h>
-
 #include "geometry.h"
 
 
@@ -25,7 +20,6 @@ public:
 
 	__twin__ Vec3f operator()(float t) const { return origin + t * direction; }
 };
-
 
 class PinholeCamera
 {
