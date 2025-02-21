@@ -10,8 +10,11 @@ __kernel__ void random_init(int max_x, int max_y, curandState* rand_state) {
 	curand_init(1984, pixel_index, 0, &rand_state[pixel_index]);
 }
 
+__device__ float clamp(float x, float minVal, float maxVal) {
+	return fmaxf(minVal, fminf(x, maxVal));
+}
 
-__kernel__ void renderKernel(const DensityGrid grid, const RenderSetting setting, float* fb, curandState* rand_state)
+__kernel__ void renderKernel(const DensityGrid grid, const RenderSetting setting, unsigned char* fb, curandState* rand_state)
 {
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -23,7 +26,7 @@ __kernel__ void renderKernel(const DensityGrid grid, const RenderSetting setting
 	// local randomstate
 	curandState local_rand_state = rand_state[y * setting.width + x];
 	Sampler sampler(&local_rand_state);
-	
+
 	Vec3f Color(0.0f);
 	for (int i = 0; i < setting.samples; i++)
 	{
@@ -46,13 +49,16 @@ __kernel__ void renderKernel(const DensityGrid grid, const RenderSetting setting
 	Color = gamma(Color);
 
 	// write color buffer
-	fb[pixel_index + 0] = Color[0];
-	fb[pixel_index + 1] = Color[1];
-	fb[pixel_index + 2] = Color[2];
+	fb[pixel_index + 0] =
+		clamp(255.0f * Color[2], 0.0f, 255.0f);
+	fb[pixel_index + 1] =
+		clamp(255.0f * Color[1], 0.0f, 255.0f);
+	fb[pixel_index + 2] =
+		clamp(255.0f * Color[0], 0.0f, 255.0f);
 }
 
 
-void render(const DensityGrid& grid, const RenderSetting& setting, float* h_fb)
+void render(const DensityGrid& grid, const RenderSetting& setting, unsigned char* h_fb)
 {
 	//get data from render setting
 	int nx = setting.width;
@@ -72,9 +78,9 @@ void render(const DensityGrid& grid, const RenderSetting& setting, float* h_fb)
 
 
 	int num_pixels = nx * ny;
-	size_t fb_size = 3 * num_pixels * sizeof(float);
+	size_t fb_size = 3 * num_pixels * sizeof(unsigned char);
 
-	float* d_fb;
+	unsigned char* d_fb;
 	checkCudaErrors(cudaMalloc(&d_fb, fb_size));
 
 	//call kernel function

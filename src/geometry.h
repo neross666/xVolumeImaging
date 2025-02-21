@@ -144,6 +144,7 @@ using Vec2f = Vec2<float>;
 
 #pragma endregion Vec2
 
+
 #pragma region Vec3
 template <typename T>
 struct Vec3 {
@@ -300,7 +301,6 @@ __twin__ inline Vec3<T> exp(const Vec3<T>& v) {
 using Vec3f = Vec3<float>;
 using Vec3ui = Vec3<uint32_t>;
 #pragma endregion Vec3
-
 
 
 #pragma region Matrix44

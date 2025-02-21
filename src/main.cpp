@@ -2,32 +2,7 @@
 #include "window.h"
 #include <chrono>
 
-void render(const DensityGrid& grid, const RenderSetting& setting, float* frameBuffer);
-
-void convert(float* fb, unsigned char* pixel, int width, int height)
-{
-	for (int j = 0; j < height; j++)
-	{
-		for (int i = 0; i < width; i++)
-		{
-			size_t pixel_index = j * 3 * width + i * 3;
-			float r = fb[pixel_index + 0];
-			float g = fb[pixel_index + 1];
-			float b = fb[pixel_index + 2];
-
-			const uint8_t R =
-				std::clamp(static_cast<uint32_t>(255.0f * r), 0u, 255u);
-			const uint8_t G =
-				std::clamp(static_cast<uint32_t>(255.0f * g), 0u, 255u);
-			const uint8_t B =
-				std::clamp(static_cast<uint32_t>(255.0f * b), 0u, 255u);
-
-			pixel[pixel_index + 0] = B;
-			pixel[pixel_index + 1] = G;
-			pixel[pixel_index + 2] = R;
-		}
-	}
-}
+void render(const DensityGrid& grid, const RenderSetting& setting, unsigned char* frameBuffer);
 
 int main()
 {
@@ -63,9 +38,7 @@ int main()
 	auto Render = [](const DensityGrid& grid, const RenderSetting& setting, unsigned char* pixel)
 	{
 		auto start = std::chrono::steady_clock::now();
-		std::unique_ptr<float[]> frameBuffer{ new float[setting.width * setting.height * 3] };
-		render(grid, setting, frameBuffer.get());
-		convert(frameBuffer.get(), pixel, setting.width, setting.height);
+		render(grid, setting, pixel);
 		auto end = std::chrono::steady_clock::now();
 		return 1000.f / std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 	};
